@@ -24,6 +24,7 @@ from .const import (
     CONF_ONLY_WHEN_VISIBLE,
     CONF_PAUSE_ON_INTERACTION,
     CONF_START_DELAY,
+    CONF_TARGET_CLIENT_ID,
     CONF_VIEWS_JSON,
     DEFAULT_DASHBOARD_PATH,
     DEFAULT_ENABLED,
@@ -32,6 +33,7 @@ from .const import (
     DEFAULT_ONLY_WHEN_VISIBLE,
     DEFAULT_PAUSE_ON_INTERACTION,
     DEFAULT_START_DELAY,
+    DEFAULT_TARGET_CLIENT_ID,
     DEFAULT_VIEWS_JSON,
     DOMAIN,
     NAME,
@@ -91,6 +93,10 @@ def _build_schema(defaults: dict[str, Any]) -> vol.Schema:
                 )
             ),
             vol.Required(
+                CONF_TARGET_CLIENT_ID,
+                default=defaults.get(CONF_TARGET_CLIENT_ID, DEFAULT_TARGET_CLIENT_ID),
+            ): TextSelector(),
+            vol.Required(
                 CONF_VIEWS_JSON,
                 default=defaults.get(CONF_VIEWS_JSON, DEFAULT_VIEWS_JSON),
             ): TextSelector(TextSelectorConfig(multiline=True)),
@@ -128,6 +134,7 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_PAUSE_ON_INTERACTION: DEFAULT_PAUSE_ON_INTERACTION,
             CONF_ONLY_WHEN_VISIBLE: DEFAULT_ONLY_WHEN_VISIBLE,
             CONF_START_DELAY: DEFAULT_START_DELAY,
+            CONF_TARGET_CLIENT_ID: DEFAULT_TARGET_CLIENT_ID,
             CONF_VIEWS_JSON: DEFAULT_VIEWS_JSON,
         }
 
@@ -142,14 +149,11 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlowWithReload:
         """Return the options flow handler."""
-        return DashboardRotatorOptionsFlow(config_entry)
+        return DashboardRotatorOptionsFlow()
 
 
 class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
     """Options flow for Dashboard Rotator."""
-
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        self.config_entry = config_entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
@@ -160,7 +164,7 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
             except InvalidViewsConfig:
                 errors["base"] = "invalid_views"
             else:
-                return self.async_create_entry(title="", data=build_storage_dict(normalized))
+                return self.async_create_entry(data=build_storage_dict(normalized))
 
         defaults = normalize_config({**self.config_entry.data, **self.config_entry.options})
         return self.async_show_form(

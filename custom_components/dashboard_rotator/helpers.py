@@ -17,6 +17,7 @@ from .const import (
     CONF_PAUSE_ON_INTERACTION,
     CONF_SECONDS,
     CONF_START_DELAY,
+    CONF_TARGET_CLIENT_ID,
     CONF_TITLE,
     CONF_VIEWS,
     CONF_VIEWS_JSON,
@@ -27,6 +28,7 @@ from .const import (
     DEFAULT_ONLY_WHEN_VISIBLE,
     DEFAULT_PAUSE_ON_INTERACTION,
     DEFAULT_START_DELAY,
+    DEFAULT_TARGET_CLIENT_ID,
     DEFAULT_VIEWS_JSON,
 )
 
@@ -129,6 +131,9 @@ def normalize_config(data: dict[str, Any]) -> dict[str, Any]:
     start_delay = max(0, _coerce_int(data.get(CONF_START_DELAY), DEFAULT_START_DELAY))
     views_json = str(data.get(CONF_VIEWS_JSON, DEFAULT_VIEWS_JSON)).strip() or DEFAULT_VIEWS_JSON
     views = parse_views_json(views_json, dashboard_path, default_interval)
+    target_client_id = str(
+        data.get(CONF_TARGET_CLIENT_ID, DEFAULT_TARGET_CLIENT_ID) or ""
+    ).strip()
 
     return {
         CONF_NAME: str(data.get(CONF_NAME, DEFAULT_NAME)).strip() or DEFAULT_NAME,
@@ -140,6 +145,7 @@ def normalize_config(data: dict[str, Any]) -> dict[str, Any]:
             data.get(CONF_ONLY_WHEN_VISIBLE), DEFAULT_ONLY_WHEN_VISIBLE
         ),
         CONF_START_DELAY: start_delay,
+        CONF_TARGET_CLIENT_ID: target_client_id,
         CONF_VIEWS_JSON: format_views_json(views),
         CONF_VIEWS: views,
     }
@@ -161,6 +167,7 @@ def build_storage_dict(config: dict[str, Any]) -> dict[str, Any]:
         CONF_PAUSE_ON_INTERACTION: config[CONF_PAUSE_ON_INTERACTION],
         CONF_ONLY_WHEN_VISIBLE: config[CONF_ONLY_WHEN_VISIBLE],
         CONF_START_DELAY: config[CONF_START_DELAY],
+        CONF_TARGET_CLIENT_ID: config[CONF_TARGET_CLIENT_ID],
         CONF_VIEWS_JSON: config[CONF_VIEWS_JSON],
     }
 

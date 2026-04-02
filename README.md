@@ -2,7 +2,7 @@
 
 Home Assistant custom integration that rotates Lovelace dashboard views on a timed interval.
 
-Current version: `0.1.2`
+Current version: `0.1.3`
 
 ## What it does
 
@@ -82,6 +82,12 @@ Rules:
 - `seconds` must be > 0
 - at least one view must be enabled
 
+Optional profile fields:
+
+- `target_client_id`: if set, only that specific browser client/tab will auto-rotate
+
+You can discover active client IDs from the runtime sensor attributes or the optional status card.
+
 ## Entities
 
 - `sensor.dashboard_rotator_runtime`
@@ -100,6 +106,16 @@ Rules:
 - `dashboard_rotator.next_view`
 - `dashboard_rotator.previous_view`
 - `dashboard_rotator.jump_to_view`
+
+All command services support an optional `target_client_id` field.
+
+Example:
+
+```yaml
+service: dashboard_rotator.pause
+data:
+  target_client_id: dr-abc12345
+```
 
 ## Optional status card
 
@@ -128,15 +144,14 @@ entity: sensor.dashboard_rotator_runtime
 ## Known MVP limitations
 
 - single profile only
-- runtime sensor now tracks multiple clients, but command targeting is still global
-- no per-client targeting yet
+- target selection is by raw `client_id` string today; there is no friendly picker UI yet
 - no visual config editor for the views list yet; it is JSON-based for now
 
 ## Planned next steps
 
 - multi-profile support
 - cleaner views editor UI
-- per-client target mode (kiosk/tablet specific)
+- friendly per-client picker / labeling
 - schedules
 - random / ping-pong rotation modes
 

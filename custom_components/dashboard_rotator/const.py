@@ -5,7 +5,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "dashboard_rotator"
 NAME = "Dashboard Rotator"
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 
 PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.BUTTON]
 
@@ -19,6 +19,7 @@ CONF_DEFAULT_INTERVAL = "default_interval"
 CONF_PAUSE_ON_INTERACTION = "pause_on_interaction"
 CONF_ONLY_WHEN_VISIBLE = "only_when_visible"
 CONF_START_DELAY = "start_delay"
+CONF_TARGET_CLIENT_ID = "target_client_id"
 CONF_VIEWS_JSON = "views_json"
 CONF_VIEWS = "views"
 CONF_PATH = "path"
@@ -32,6 +33,7 @@ DEFAULT_INTERVAL = 15
 DEFAULT_PAUSE_ON_INTERACTION = 60
 DEFAULT_ONLY_WHEN_VISIBLE = True
 DEFAULT_START_DELAY = 3
+DEFAULT_TARGET_CLIENT_ID = ""
 DEFAULT_VIEWS_JSON = """[
   {
     \"path\": \"/lovelace/home\",
@@ -58,6 +60,7 @@ ATTR_CLIENT_STATE = "client_state"
 ATTR_CLIENT_STATES = "client_states"
 ATTR_ACTIVE_CLIENT_ID = "active_client_id"
 ATTR_ACTIVE_CLIENT_COUNT = "active_client_count"
+ATTR_TARGET_CLIENT_ID = "target_client_id"
 ATTR_INTEGRATION_DOMAIN = "integration_domain"
 ATTR_ENTITY_ROLE = "entity_role"
 ATTR_VERSION = "version"

@@ -15,6 +15,7 @@ from homeassistant.helpers import config_validation as cv
 
 from .const import (
     CONF_PATH,
+    CONF_TARGET_CLIENT_ID,
     DOMAIN,
     FRONTEND_FILE,
     FRONTEND_URL,
@@ -32,8 +33,13 @@ from .manager import RotatorManager
 
 _LOGGER = logging.getLogger(__name__)
 
-SERVICE_BASE_SCHEMA = vol.Schema({})
-SERVICE_JUMP_SCHEMA = vol.Schema({vol.Required(CONF_PATH): cv.string})
+SERVICE_BASE_SCHEMA = vol.Schema({vol.Optional(CONF_TARGET_CLIENT_ID): cv.string})
+SERVICE_JUMP_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_PATH): cv.string,
+        vol.Optional(CONF_TARGET_CLIENT_ID): cv.string,
+    }
+)
 SERVICE_CLIENT_STATE_SCHEMA = vol.Schema(
     {
         vol.Optional("client_id"): cv.string,
@@ -60,28 +66,42 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     async def _handle_pause(call: ServiceCall) -> None:
         manager = _get_manager(hass)
         if manager:
-            await manager.async_issue_command(SERVICE_PAUSE)
+            await manager.async_issue_command(
+                SERVICE_PAUSE,
+                target_client_id=call.data.get(CONF_TARGET_CLIENT_ID),
+            )
 
     async def _handle_resume(call: ServiceCall) -> None:
         manager = _get_manager(hass)
         if manager:
-            await manager.async_issue_command(SERVICE_RESUME)
+            await manager.async_issue_command(
+                SERVICE_RESUME,
+                target_client_id=call.data.get(CONF_TARGET_CLIENT_ID),
+            )
 
     async def _handle_next(call: ServiceCall) -> None:
         manager = _get_manager(hass)
         if manager:
-            await manager.async_issue_command(SERVICE_NEXT_VIEW)
+            await manager.async_issue_command(
+                SERVICE_NEXT_VIEW,
+                target_client_id=call.data.get(CONF_TARGET_CLIENT_ID),
+            )
 
     async def _handle_previous(call: ServiceCall) -> None:
         manager = _get_manager(hass)
         if manager:
-            await manager.async_issue_command(SERVICE_PREVIOUS_VIEW)
+            await manager.async_issue_command(
+                SERVICE_PREVIOUS_VIEW,
+                target_client_id=call.data.get(CONF_TARGET_CLIENT_ID),
+            )
 
     async def _handle_jump(call: ServiceCall) -> None:
         manager = _get_manager(hass)
         if manager:
             await manager.async_issue_command(
-                SERVICE_JUMP_TO_VIEW, normalize_path(call.data[CONF_PATH])
+                SERVICE_JUMP_TO_VIEW,
+                normalize_path(call.data[CONF_PATH]),
+                target_client_id=call.data.get(CONF_TARGET_CLIENT_ID),
             )
 
     async def _handle_client_state(call: ServiceCall) -> None:
@@ -116,13 +136,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN]["manager"] = manager
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     return True
-
-
-async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload the entry when options change."""
-    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

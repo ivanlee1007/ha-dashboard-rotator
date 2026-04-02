@@ -1,15 +1,39 @@
 pause:
   name: Pause rotation
   description: Pause dashboard view rotation on connected clients.
+  fields:
+    target_client_id:
+      required: false
+      example: dr-abc12345
+      selector:
+        text:
 resume:
   name: Resume rotation
   description: Resume dashboard view rotation on connected clients.
+  fields:
+    target_client_id:
+      required: false
+      example: dr-abc12345
+      selector:
+        text:
 next_view:
   name: Next view
   description: Jump to the next configured dashboard view.
+  fields:
+    target_client_id:
+      required: false
+      example: dr-abc12345
+      selector:
+        text:
 previous_view:
   name: Previous view
   description: Jump to the previous configured dashboard view.
+  fields:
+    target_client_id:
+      required: false
+      example: dr-abc12345
+      selector:
+        text:
 jump_to_view:
   name: Jump to view
   description: Jump to a specific dashboard view path.
@@ -17,6 +41,11 @@ jump_to_view:
     path:
       required: true
       example: /lovelace-uninus/weather
+      selector:
+        text:
+    target_client_id:
+      required: false
+      example: dr-abc12345
       selector:
         text:
 client_state:

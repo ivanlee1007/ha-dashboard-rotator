@@ -12,6 +12,7 @@
           "pause_on_interaction": "Pause after interaction (seconds)",
           "only_when_visible": "Only rotate when page is visible",
           "start_delay": "Start delay (seconds)",
+          "target_client_id": "Target client ID (blank = all clients)",
           "views_json": "Views JSON"
         }
       }
@@ -36,6 +37,7 @@
           "pause_on_interaction": "Pause after interaction (seconds)",
           "only_when_visible": "Only rotate when page is visible",
           "start_delay": "Start delay (seconds)",
+          "target_client_id": "Target client ID (blank = all clients)",
           "views_json": "Views JSON"
         }
       }

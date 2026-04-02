@@ -17,9 +17,11 @@ from .const import (
     ATTR_ENTITY_ROLE,
     ATTR_INTEGRATION_DOMAIN,
     ATTR_PROFILE,
+    ATTR_TARGET_CLIENT_ID,
     ATTR_VERSION,
     CLIENT_STALE_SECONDS,
     CONF_ENABLED,
+    CONF_TARGET_CLIENT_ID,
     DOMAIN,
     SIGNAL_RUNTIME_UPDATE,
     VERSION,
@@ -39,6 +41,7 @@ class RotatorManager:
             "seq": 0,
             "name": "idle",
             "view_path": None,
+            "target_client_id": None,
             "issued_at": None,
         }
         self.client_state: dict[str, Any] = {
@@ -66,15 +69,22 @@ class RotatorManager:
         """Refresh manager after config/options changes."""
         self.entry = entry
         self.profile = get_entry_config(entry)
+        self._refresh_active_state()
         self.async_write()
 
-    async def async_issue_command(self, name: str, view_path: str | None = None) -> None:
+    async def async_issue_command(
+        self,
+        name: str,
+        view_path: str | None = None,
+        target_client_id: str | None = None,
+    ) -> None:
         """Create a new frontend command."""
         self.command_seq += 1
         self.command = {
             "seq": self.command_seq,
             "name": name,
             "view_path": view_path,
+            "target_client_id": (target_client_id or "").strip() or None,
             "issued_at": datetime.now(UTC).isoformat(),
         }
         self.async_write()
@@ -91,11 +101,44 @@ class RotatorManager:
         }
         self.client_states[client_id] = merged
         self._prune_stale_clients(now)
-        self.active_client_id = self._select_active_client_id()
-        self.client_state = deepcopy(
-            self.client_states.get(self.active_client_id or client_id, merged)
-        )
+        self._refresh_active_state(fallback_state=merged)
         self.async_write()
+
+    def _refresh_active_state(self, fallback_state: dict[str, Any] | None = None) -> None:
+        """Refresh active client pointers after state/config changes."""
+        self.active_client_id = self._select_active_client_id()
+        target_client_id = self.profile.get(CONF_TARGET_CLIENT_ID) or None
+        if target_client_id and target_client_id not in self.client_states:
+            self.client_state = {
+                "client_id": target_client_id,
+                "status": "target_unavailable",
+                "current_view": None,
+                "next_view": None,
+                "remaining_seconds": None,
+                "page_visible": None,
+                "on_managed_dashboard": None,
+                "updated_at": None,
+            }
+            return
+
+        if self.active_client_id and self.active_client_id in self.client_states:
+            self.client_state = deepcopy(self.client_states[self.active_client_id])
+            return
+
+        if fallback_state is not None:
+            self.client_state = deepcopy(fallback_state)
+            return
+
+        self.client_state = {
+            "client_id": None,
+            "status": "idle",
+            "current_view": None,
+            "next_view": None,
+            "remaining_seconds": None,
+            "page_visible": None,
+            "on_managed_dashboard": None,
+            "updated_at": None,
+        }
 
     def _prune_stale_clients(self, now: datetime) -> None:
         """Drop stale client heartbeats."""
@@ -116,7 +159,12 @@ class RotatorManager:
     def _select_active_client_id(self) -> str | None:
         """Choose the client that best represents the active runtime."""
         if not self.client_states:
-            return None
+            target_client_id = self.profile.get(CONF_TARGET_CLIENT_ID) or None
+            return target_client_id
+
+        target_client_id = self.profile.get(CONF_TARGET_CLIENT_ID) or None
+        if target_client_id:
+            return target_client_id
 
         status_weight = {
             "running": 60,
@@ -124,7 +172,9 @@ class RotatorManager:
             "interaction_pause": 50,
             "manual_pause": 45,
             "waiting_start": 40,
+            "not_targeted": 25,
             "hidden": 20,
+            "target_unavailable": 15,
             "idle": 10,
             "disabled": 0,
         }
@@ -147,6 +197,9 @@ class RotatorManager:
         """Expose a coarse runtime state for the main sensor."""
         if not self.profile[CONF_ENABLED]:
             return "disabled"
+        target_client_id = self.profile.get(CONF_TARGET_CLIENT_ID) or None
+        if target_client_id and target_client_id not in self.client_states:
+            return "target_unavailable"
         if not self.client_states:
             return "idle"
         return self.client_state.get("status") or "idle"
@@ -164,6 +217,7 @@ class RotatorManager:
             ATTR_COMMAND: deepcopy(self.command),
             ATTR_ACTIVE_CLIENT_ID: self.active_client_id,
             ATTR_ACTIVE_CLIENT_COUNT: len(self.client_states),
+            ATTR_TARGET_CLIENT_ID: self.profile.get(CONF_TARGET_CLIENT_ID) or None,
             ATTR_CLIENT_STATE: deepcopy(self.client_state),
             ATTR_CLIENT_STATES: deepcopy(self.client_states),
         }

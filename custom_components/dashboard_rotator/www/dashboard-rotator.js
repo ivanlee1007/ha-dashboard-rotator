@@ -84,6 +84,15 @@ class DashboardRotatorController {
     return Math.max(1, Number(view?.seconds || profile?.default_interval || 15));
   }
 
+  getTargetClientId(profile) {
+    return String(profile?.target_client_id || "").trim();
+  }
+
+  isTargetClient(profile) {
+    const targetClientId = this.getTargetClientId(profile);
+    return !targetClientId || targetClientId === this._clientId;
+  }
+
   async navigateTo(path) {
     const target = normalizePath(path);
     if (!target || target === this.getCurrentPath()) return;
@@ -117,6 +126,10 @@ class DashboardRotatorController {
   async handleCommand(command, profile, currentPath, views) {
     const seq = Number(command?.seq || 0);
     if (!seq || seq === this._lastCommandSeq) return false;
+    const profileTargetClientId = this.getTargetClientId(profile);
+    if (profileTargetClientId && profileTargetClientId !== this._clientId) return false;
+    const targetClientId = String(command?.target_client_id || "").trim();
+    if (targetClientId && targetClientId !== this._clientId) return false;
     this._lastCommandSeq = seq;
 
     const name = command?.name;
@@ -183,6 +196,8 @@ class DashboardRotatorController {
 
     const visible = document.visibilityState === "visible";
     const views = this.getManagedViews(profile);
+    const onManagedDashboard = this.isOnManagedDashboard(path, profile);
+    const isTargetClient = this.isTargetClient(profile);
     await this.handleCommand(command, profile, path, views);
 
     if (!profile.enabled) {
@@ -193,12 +208,12 @@ class DashboardRotatorController {
         next_view: null,
         remaining_seconds: null,
         page_visible: visible,
-        on_managed_dashboard: this.isOnManagedDashboard(path, profile),
+        on_managed_dashboard: onManagedDashboard,
       });
       return;
     }
 
-    if (!this.isOnManagedDashboard(path, profile)) {
+    if (!onManagedDashboard) {
       this._dashboardEnteredAt = 0;
       await this.reportState(hass, {
         client_id: this._clientId,
@@ -208,6 +223,19 @@ class DashboardRotatorController {
         remaining_seconds: null,
         page_visible: visible,
         on_managed_dashboard: false,
+      });
+      return;
+    }
+
+    if (!isTargetClient) {
+      await this.reportState(hass, {
+        client_id: this._clientId,
+        status: "not_targeted",
+        current_view: path,
+        next_view: null,
+        remaining_seconds: null,
+        page_visible: visible,
+        on_managed_dashboard: true,
       });
       return;
     }
@@ -338,11 +366,13 @@ class DashboardRotatorStatusCard extends HTMLElement {
       this.shadowRoot.addEventListener("click", (ev) => {
         const action = ev.target?.dataset?.action;
         if (!action || !this._hass) return;
+        const targetClientId = String(this._config?.target_client_id || "").trim();
+        const data = targetClientId ? { target_client_id: targetClientId } : {};
         if (action === "jump" && ev.target.dataset.path) {
-          this._hass.callService(DOMAIN, "jump_to_view", { path: ev.target.dataset.path });
+          this._hass.callService(DOMAIN, "jump_to_view", { ...data, path: ev.target.dataset.path });
           return;
         }
-        this._hass.callService(DOMAIN, action, {});
+        this._hass.callService(DOMAIN, action, data);
       });
     }
   }
@@ -381,6 +411,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
     const client = attrs.client_state || {};
     const clientStates = attrs.client_states || {};
     const activeClientId = attrs.active_client_id || null;
+    const targetClientId = attrs.target_client_id || profile.target_client_id || null;
     const views = Array.isArray(profile.views) ? profile.views.filter((view) => view.enabled !== false) : [];
     const clients = Object.values(clientStates)
       .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
@@ -404,6 +435,8 @@ class DashboardRotatorStatusCard extends HTMLElement {
         <div class="pad">
           <div class="row"><strong>Status</strong><span>${runtime.state}</span></div>
           <div class="row"><strong>Dashboard</strong><span>${profile.dashboard_path || "-"}</span></div>
+          <div class="row"><strong>Target client</strong><span>${targetClientId || "all clients"}</span></div>
+          ${this._config?.target_client_id ? `<div class="row"><strong>Card command target</strong><span>${this._config.target_client_id}</span></div>` : ''}
           <div class="row"><strong>Active client</strong><span>${activeClientId || "-"}</span></div>
           <div class="row"><strong>Clients</strong><span>${clients.length}</span></div>
           <div class="row"><strong>Current</strong><span>${client.current_view || "-"}</span></div>
@@ -423,7 +456,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
             ${clients.map((item) => `
               <div class="client-item ${item.client_id === activeClientId ? 'active' : ''}">
                 <div class="client-head">
-                  <span>${item.client_id || '-'}</span>
+                  <span>${item.client_id || '-'}${item.client_id === targetClientId ? ' 🎯' : ''}</span>
                   <span>${item.status || '-'}</span>
                 </div>
                 <div class="tiny">current: ${item.current_view || '-'} | next: ${item.next_view || '-'}</div>
