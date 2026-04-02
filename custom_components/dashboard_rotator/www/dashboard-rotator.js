@@ -37,10 +37,10 @@ class DashboardRotatorController {
 
   _ensureClientId() {
     try {
-      const existing = window.localStorage.getItem("dashboard_rotator_client_id");
+      const existing = window.sessionStorage.getItem("dashboard_rotator_client_id");
       if (existing) return existing;
       const created = `dr-${Math.random().toString(36).slice(2, 10)}`;
-      window.localStorage.setItem("dashboard_rotator_client_id", created);
+      window.sessionStorage.setItem("dashboard_rotator_client_id", created);
       return created;
     } catch (_err) {
       return `dr-${Math.random().toString(36).slice(2, 10)}`;
@@ -193,6 +193,7 @@ class DashboardRotatorController {
         next_view: null,
         remaining_seconds: null,
         page_visible: visible,
+        on_managed_dashboard: this.isOnManagedDashboard(path, profile),
       });
       return;
     }
@@ -206,6 +207,7 @@ class DashboardRotatorController {
         next_view: null,
         remaining_seconds: null,
         page_visible: visible,
+        on_managed_dashboard: false,
       });
       return;
     }
@@ -218,6 +220,7 @@ class DashboardRotatorController {
         next_view: null,
         remaining_seconds: null,
         page_visible: visible,
+        on_managed_dashboard: true,
       });
       return;
     }
@@ -230,6 +233,7 @@ class DashboardRotatorController {
         next_view: null,
         remaining_seconds: null,
         page_visible: visible,
+        on_managed_dashboard: true,
       });
       return;
     }
@@ -252,6 +256,7 @@ class DashboardRotatorController {
         next_view: firstView?.path || null,
         remaining_seconds: remaining,
         page_visible: visible,
+        on_managed_dashboard: true,
       });
       return;
     }
@@ -273,6 +278,7 @@ class DashboardRotatorController {
         next_view: nextView.path,
         remaining_seconds: null,
         page_visible: visible,
+        on_managed_dashboard: true,
       });
       return;
     }
@@ -285,6 +291,7 @@ class DashboardRotatorController {
         next_view: nextView.path,
         remaining_seconds: Math.ceil((this._manualPauseUntil - now) / 1000),
         page_visible: visible,
+        on_managed_dashboard: true,
       });
       return;
     }
@@ -302,6 +309,7 @@ class DashboardRotatorController {
         next_view: nextView.path,
         remaining_seconds: 0,
         page_visible: visible,
+        on_managed_dashboard: true,
       });
       return;
     }
@@ -313,6 +321,7 @@ class DashboardRotatorController {
       next_view: nextView.path,
       remaining_seconds: remainingSeconds,
       page_visible: visible,
+      on_managed_dashboard: true,
     });
   }
 }
@@ -370,7 +379,11 @@ class DashboardRotatorStatusCard extends HTMLElement {
     const attrs = runtime.attributes || {};
     const profile = attrs.profile || {};
     const client = attrs.client_state || {};
+    const clientStates = attrs.client_states || {};
+    const activeClientId = attrs.active_client_id || null;
     const views = Array.isArray(profile.views) ? profile.views.filter((view) => view.enabled !== false) : [];
+    const clients = Object.values(clientStates)
+      .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -381,11 +394,18 @@ class DashboardRotatorStatusCard extends HTMLElement {
         .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top: 12px; }
         .chip { border: 1px solid var(--divider-color); border-radius: 999px; padding: 4px 10px; font-size: 12px; }
         .muted { color: var(--secondary-text-color); }
+        .client-list { margin-top: 12px; display:grid; gap:8px; }
+        .client-item { border: 1px solid var(--divider-color); border-radius: 10px; padding: 10px; }
+        .client-item.active { border-color: var(--primary-color); }
+        .client-head { display:flex; justify-content:space-between; gap:8px; font-weight:600; margin-bottom: 4px; }
+        .tiny { font-size: 12px; color: var(--secondary-text-color); }
       </style>
       <ha-card header="Dashboard Rotator">
         <div class="pad">
           <div class="row"><strong>Status</strong><span>${runtime.state}</span></div>
           <div class="row"><strong>Dashboard</strong><span>${profile.dashboard_path || "-"}</span></div>
+          <div class="row"><strong>Active client</strong><span>${activeClientId || "-"}</span></div>
+          <div class="row"><strong>Clients</strong><span>${clients.length}</span></div>
           <div class="row"><strong>Current</strong><span>${client.current_view || "-"}</span></div>
           <div class="row"><strong>Next</strong><span>${client.next_view || "-"}</span></div>
           <div class="row"><strong>Remaining</strong><span>${client.remaining_seconds ?? "-"}</span></div>
@@ -399,12 +419,27 @@ class DashboardRotatorStatusCard extends HTMLElement {
           <div class="chips">
             ${views.map((view) => `<button class="chip" data-action="jump" data-path="${view.path}">${view.title || view.path}</button>`).join("")}
           </div>
+          <div class="client-list">
+            ${clients.map((item) => `
+              <div class="client-item ${item.client_id === activeClientId ? 'active' : ''}">
+                <div class="client-head">
+                  <span>${item.client_id || '-'}</span>
+                  <span>${item.status || '-'}</span>
+                </div>
+                <div class="tiny">current: ${item.current_view || '-'} | next: ${item.next_view || '-'}</div>
+                <div class="tiny">remaining: ${item.remaining_seconds ?? '-'} | visible: ${item.page_visible ?? '-'}</div>
+                <div class="tiny">updated: ${item.updated_at || '-'}</div>
+              </div>
+            `).join('')}
+          </div>
           <div class="muted" style="margin-top:12px;">Last update: ${client.updated_at || "-"}</div>
         </div>
       </ha-card>
     `;
   }
 }
+
+window.DashboardRotatorStatusCard = DashboardRotatorStatusCard;
 
 if (!customElements.get("dashboard-rotator-status")) {
   customElements.define("dashboard-rotator-status", DashboardRotatorStatusCard);

@@ -5,7 +5,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "dashboard_rotator"
 NAME = "Dashboard Rotator"
-VERSION = "0.1.0"
+VERSION = "0.1.2"
 
 PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.BUTTON]
 
@@ -55,8 +55,13 @@ SERVICE_CLIENT_STATE = "client_state"
 ATTR_PROFILE = "profile"
 ATTR_COMMAND = "command"
 ATTR_CLIENT_STATE = "client_state"
+ATTR_CLIENT_STATES = "client_states"
+ATTR_ACTIVE_CLIENT_ID = "active_client_id"
+ATTR_ACTIVE_CLIENT_COUNT = "active_client_count"
 ATTR_INTEGRATION_DOMAIN = "integration_domain"
 ATTR_ENTITY_ROLE = "entity_role"
 ATTR_VERSION = "version"
+
+CLIENT_STALE_SECONDS = 30
 
 SIGNAL_RUNTIME_UPDATE = f"{DOMAIN}_runtime_update_{{}}"

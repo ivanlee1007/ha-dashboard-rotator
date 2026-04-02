@@ -42,6 +42,7 @@ SERVICE_CLIENT_STATE_SCHEMA = vol.Schema(
         vol.Optional("next_view"): vol.Any(None, cv.string),
         vol.Optional("remaining_seconds"): vol.Any(None, vol.Coerce(int)),
         vol.Optional("page_visible"): vol.Any(None, bool),
+        vol.Optional("on_managed_dashboard"): vol.Any(None, bool),
     }
 )
 

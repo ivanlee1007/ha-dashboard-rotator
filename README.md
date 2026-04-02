@@ -2,6 +2,8 @@
 
 Home Assistant custom integration that rotates Lovelace dashboard views on a timed interval.
 
+Current version: `0.1.2`
+
 ## What it does
 
 - Rotates dashboard tabs/views by configured seconds
@@ -126,7 +128,7 @@ entity: sensor.dashboard_rotator_runtime
 ## Known MVP limitations
 
 - single profile only
-- last client wins for the runtime heartbeat sensor attributes
+- runtime sensor now tracks multiple clients, but command targeting is still global
 - no per-client targeting yet
 - no visual config editor for the views list yet; it is JSON-based for now
 

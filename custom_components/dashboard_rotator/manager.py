@@ -2,19 +2,23 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
+    ATTR_ACTIVE_CLIENT_COUNT,
+    ATTR_ACTIVE_CLIENT_ID,
     ATTR_CLIENT_STATE,
+    ATTR_CLIENT_STATES,
     ATTR_COMMAND,
     ATTR_ENTITY_ROLE,
     ATTR_INTEGRATION_DOMAIN,
     ATTR_PROFILE,
     ATTR_VERSION,
+    CLIENT_STALE_SECONDS,
     CONF_ENABLED,
     DOMAIN,
     SIGNAL_RUNTIME_UPDATE,
@@ -44,8 +48,11 @@ class RotatorManager:
             "next_view": None,
             "remaining_seconds": None,
             "page_visible": None,
+            "on_managed_dashboard": None,
             "updated_at": None,
         }
+        self.client_states: dict[str, dict[str, Any]] = {}
+        self.active_client_id: str | None = None
 
     @property
     def signal(self) -> str:
@@ -74,18 +81,74 @@ class RotatorManager:
 
     async def async_set_client_state(self, state: dict[str, Any]) -> None:
         """Store the latest client-reported runtime state."""
-        self.client_state = {
-            **self.client_state,
+        now = datetime.now(UTC)
+        client_id = state.get("client_id") or "unknown"
+        merged = {
+            **self.client_states.get(client_id, self.client_state),
             **state,
-            "updated_at": datetime.now(UTC).isoformat(),
+            "client_id": client_id,
+            "updated_at": now.isoformat(),
         }
+        self.client_states[client_id] = merged
+        self._prune_stale_clients(now)
+        self.active_client_id = self._select_active_client_id()
+        self.client_state = deepcopy(
+            self.client_states.get(self.active_client_id or client_id, merged)
+        )
         self.async_write()
+
+    def _prune_stale_clients(self, now: datetime) -> None:
+        """Drop stale client heartbeats."""
+        cutoff = now - timedelta(seconds=CLIENT_STALE_SECONDS)
+        stale: list[str] = []
+        for client_id, state in self.client_states.items():
+            updated_at = state.get("updated_at")
+            try:
+                seen = datetime.fromisoformat(updated_at)
+            except (TypeError, ValueError):
+                stale.append(client_id)
+                continue
+            if seen < cutoff:
+                stale.append(client_id)
+        for client_id in stale:
+            self.client_states.pop(client_id, None)
+
+    def _select_active_client_id(self) -> str | None:
+        """Choose the client that best represents the active runtime."""
+        if not self.client_states:
+            return None
+
+        status_weight = {
+            "running": 60,
+            "navigating": 55,
+            "interaction_pause": 50,
+            "manual_pause": 45,
+            "waiting_start": 40,
+            "hidden": 20,
+            "idle": 10,
+            "disabled": 0,
+        }
+
+        ranked = sorted(
+            self.client_states.items(),
+            key=lambda item: (
+                status_weight.get(str(item[1].get("status") or "idle"), 5)
+                + (20 if item[1].get("on_managed_dashboard") else 0)
+                + (10 if item[1].get("page_visible") else 0),
+                item[1].get("updated_at") or "",
+                item[0],
+            ),
+            reverse=True,
+        )
+        return ranked[0][0]
 
     @property
     def state(self) -> str:
         """Expose a coarse runtime state for the main sensor."""
         if not self.profile[CONF_ENABLED]:
             return "disabled"
+        if not self.client_states:
+            return "idle"
         return self.client_state.get("status") or "idle"
 
     @property
@@ -99,5 +162,8 @@ class RotatorManager:
             "enabled": self.profile[CONF_ENABLED],
             ATTR_PROFILE: profile_for_frontend(self.profile),
             ATTR_COMMAND: deepcopy(self.command),
+            ATTR_ACTIVE_CLIENT_ID: self.active_client_id,
+            ATTR_ACTIVE_CLIENT_COUNT: len(self.client_states),
             ATTR_CLIENT_STATE: deepcopy(self.client_state),
+            ATTR_CLIENT_STATES: deepcopy(self.client_states),
         }
