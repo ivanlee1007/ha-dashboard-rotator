@@ -117,6 +117,35 @@ def _clients_summary(
     return "\n".join(lines)
 
 
+def _stringify(value: Any, fallback: str = "-") -> str:
+    if value is None:
+        return fallback
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    text = str(value).strip()
+    return text or fallback
+
+
+def _client_details_placeholders(
+    client_id: str,
+    alias: str | None,
+    state: dict[str, Any] | None,
+    target_client_id: str | None,
+) -> dict[str, str]:
+    state = state or {}
+    return {
+        "client_label": _client_option_label(client_id, alias, state),
+        "status": _stringify(state.get("status"), "offline"),
+        "page_title": _stringify(state.get("page_title")),
+        "current_view": _stringify(state.get("current_view")),
+        "next_view": _stringify(state.get("next_view")),
+        "page_visible": _stringify(state.get("page_visible")),
+        "on_managed_dashboard": _stringify(state.get("on_managed_dashboard")),
+        "updated_at": _stringify(state.get("updated_at"), "never"),
+        "is_target": "yes" if client_id == (target_client_id or None) else "no",
+    }
+
+
 def _build_target_selector(
     client_options: list[SelectOptionDict] | None,
 ) -> SelectSelector | TextSelector:
@@ -657,6 +686,11 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
             for index, view in enumerate(self._ensure_working()[CONF_VIEWS])
         ]
 
+    def _get_selected_client_state(self) -> dict[str, Any]:
+        if not self._selected_client_id:
+            return {}
+        return self._get_runtime_states().get(self._selected_client_id, {})
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         config = self._ensure_working()
         return self.async_show_menu(
@@ -672,7 +706,7 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
         config = self._ensure_working()
         return self.async_show_menu(
             step_id="clients",
-            menu_options=["edit_target_client", "edit_client_alias_select", "init", "save"],
+            menu_options=["view_client_details_select", "edit_target_client", "edit_client_alias_select", "init", "save"],
             description_placeholders={
                 "clients_summary": _clients_summary(
                     config.get(CONF_CLIENT_ALIASES, {}),
@@ -681,6 +715,45 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
                 ),
             },
         )
+
+    async def async_step_view_client_details_select(self, user_input: dict[str, Any] | None = None):
+        options = self._build_client_options(include_all=False)
+        if not options:
+            return await self.async_step_clients()
+        if user_input is not None:
+            self._selected_client_id = str(user_input[FIELD_SELECTED_CLIENT])
+            return await self.async_step_view_client_details()
+
+        return self.async_show_form(
+            step_id="view_client_details_select",
+            data_schema=_build_client_select_schema(options),
+        )
+
+    async def async_step_view_client_details(self, user_input: dict[str, Any] | None = None):
+        config = self._ensure_working()
+        client_id = self._selected_client_id
+        if not client_id:
+            return await self.async_step_clients()
+
+        aliases = dict(config.get(CONF_CLIENT_ALIASES, {}))
+        state = self._get_selected_client_state()
+        return self.async_show_menu(
+            step_id="view_client_details",
+            menu_options=["set_selected_target_client", "edit_client_alias", "clients"],
+            description_placeholders=_client_details_placeholders(
+                client_id,
+                aliases.get(client_id),
+                state,
+                config.get(CONF_TARGET_CLIENT_ID) or None,
+            ),
+        )
+
+    async def async_step_set_selected_target_client(self, user_input: dict[str, Any] | None = None):
+        client_id = self._selected_client_id
+        if not client_id:
+            return await self.async_step_clients()
+        self._set_working(self._build_candidate({CONF_TARGET_CLIENT_ID: client_id}))
+        return await self.async_step_view_client_details()
 
     async def async_step_edit_target_client(self, user_input: dict[str, Any] | None = None):
         config = self._ensure_working()
@@ -737,8 +810,7 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
             else:
                 aliases.pop(client_id, None)
             self._set_working(self._build_candidate(self._build_aliases_payload(aliases)))
-            self._selected_client_id = None
-            return await self.async_step_clients()
+            return await self.async_step_view_client_details()
 
         defaults = {
             FIELD_ALIAS: aliases.get(client_id, ""),
