@@ -1,0 +1,24 @@
+pause:
+  name: Pause rotation
+  description: Pause dashboard view rotation on connected clients.
+resume:
+  name: Resume rotation
+  description: Resume dashboard view rotation on connected clients.
+next_view:
+  name: Next view
+  description: Jump to the next configured dashboard view.
+previous_view:
+  name: Previous view
+  description: Jump to the previous configured dashboard view.
+jump_to_view:
+  name: Jump to view
+  description: Jump to a specific dashboard view path.
+  fields:
+    path:
+      required: true
+      example: /lovelace-uninus/weather
+      selector:
+        text:
+client_state:
+  name: Client state heartbeat
+  description: Internal service used by the frontend controller to report current state.

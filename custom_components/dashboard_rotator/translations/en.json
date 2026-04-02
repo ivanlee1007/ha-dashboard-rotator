@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dashboard Rotator",
+        "description": "Configure one dashboard rotation profile. Views are edited as a JSON array.",
+        "data": {
+          "name": "Profile name",
+          "dashboard_path": "Dashboard base path",
+          "enabled": "Enabled",
+          "default_interval": "Default interval (seconds)",
+          "pause_on_interaction": "Pause after interaction (seconds)",
+          "only_when_visible": "Only rotate when page is visible",
+          "start_delay": "Start delay (seconds)",
+          "views_json": "Views JSON"
+        }
+      }
+    },
+    "error": {
+      "invalid_views": "Views JSON is invalid. Check path prefixes and JSON syntax."
+    },
+    "abort": {
+      "single_instance_allowed": "Only one Dashboard Rotator config entry is supported in MVP mode."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Dashboard Rotator options",
+        "description": "Update the dashboard rotation profile.",
+        "data": {
+          "name": "Profile name",
+          "dashboard_path": "Dashboard base path",
+          "enabled": "Enabled",
+          "default_interval": "Default interval (seconds)",
+          "pause_on_interaction": "Pause after interaction (seconds)",
+          "only_when_visible": "Only rotate when page is visible",
+          "start_delay": "Start delay (seconds)",
+          "views_json": "Views JSON"
+        }
+      }
+    },
+    "error": {
+      "invalid_views": "Views JSON is invalid. Check path prefixes and JSON syntax."
+    }
+  }
+}

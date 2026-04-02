@@ -1,0 +1,7 @@
+{
+  "name": "Dashboard Rotator",
+  "render_readme": true,
+  "content_in_root": false,
+  "country": "TW",
+  "homeassistant": "2024.1.0"
+}
