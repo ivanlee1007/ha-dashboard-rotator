@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
+    ATTR_ACTIVE_CLIENT_ALIAS,
     ATTR_ACTIVE_CLIENT_COUNT,
     ATTR_ACTIVE_CLIENT_ID,
     ATTR_CLIENT_STATE,
@@ -20,6 +21,8 @@ from .const import (
     ATTR_TARGET_CLIENT_ID,
     ATTR_VERSION,
     CLIENT_STALE_SECONDS,
+    CONF_CLIENT_ALIASES,
+    CONF_CLIENT_ALIASES_JSON,
     CONF_ENABLED,
     CONF_TARGET_CLIENT_ID,
     DOMAIN,
@@ -27,6 +30,7 @@ from .const import (
     VERSION,
 )
 from .helpers import get_entry_config, profile_for_frontend
+from .helpers import build_storage_dict, format_aliases_json
 
 
 class RotatorManager:
@@ -52,6 +56,7 @@ class RotatorManager:
             "remaining_seconds": None,
             "page_visible": None,
             "on_managed_dashboard": None,
+            "page_title": None,
             "updated_at": None,
         }
         self.client_states: dict[str, dict[str, Any]] = {}
@@ -64,6 +69,22 @@ class RotatorManager:
     def async_write(self) -> None:
         """Notify entities that runtime state changed."""
         async_dispatcher_send(self.hass, self.signal)
+
+    def get_client_alias(self, client_id: str | None) -> str | None:
+        """Return the configured alias for a client."""
+        if not client_id:
+            return None
+        return self.profile.get(CONF_CLIENT_ALIASES, {}).get(client_id) or None
+
+    def decorate_client_state(self, state: dict[str, Any]) -> dict[str, Any]:
+        """Return a client state enriched with alias metadata."""
+        client_id = state.get("client_id")
+        alias = self.get_client_alias(client_id)
+        return {
+            **deepcopy(state),
+            "client_alias": alias,
+            "display_name": alias or state.get("page_title") or client_id,
+        }
 
     def update_entry(self, entry: ConfigEntry) -> None:
         """Refresh manager after config/options changes."""
@@ -109,7 +130,7 @@ class RotatorManager:
         self.active_client_id = self._select_active_client_id()
         target_client_id = self.profile.get(CONF_TARGET_CLIENT_ID) or None
         if target_client_id and target_client_id not in self.client_states:
-            self.client_state = {
+            self.client_state = self.decorate_client_state({
                 "client_id": target_client_id,
                 "status": "target_unavailable",
                 "current_view": None,
@@ -117,19 +138,22 @@ class RotatorManager:
                 "remaining_seconds": None,
                 "page_visible": None,
                 "on_managed_dashboard": None,
+                "page_title": None,
                 "updated_at": None,
-            }
+            })
             return
 
         if self.active_client_id and self.active_client_id in self.client_states:
-            self.client_state = deepcopy(self.client_states[self.active_client_id])
+            self.client_state = self.decorate_client_state(
+                self.client_states[self.active_client_id]
+            )
             return
 
         if fallback_state is not None:
-            self.client_state = deepcopy(fallback_state)
+            self.client_state = self.decorate_client_state(fallback_state)
             return
 
-        self.client_state = {
+        self.client_state = self.decorate_client_state({
             "client_id": None,
             "status": "idle",
             "current_view": None,
@@ -137,8 +161,32 @@ class RotatorManager:
             "remaining_seconds": None,
             "page_visible": None,
             "on_managed_dashboard": None,
+            "page_title": None,
             "updated_at": None,
+        })
+
+    async def async_set_client_alias(self, client_id: str, alias: str | None) -> None:
+        """Persist a friendly alias for a client."""
+        aliases = {
+            **self.profile.get(CONF_CLIENT_ALIASES, {}),
         }
+        value = (alias or "").strip()
+        if value:
+            aliases[client_id] = value
+        else:
+            aliases.pop(client_id, None)
+
+        self.profile = {
+            **self.profile,
+            CONF_CLIENT_ALIASES: aliases,
+            CONF_CLIENT_ALIASES_JSON: format_aliases_json(aliases),
+        }
+        self.hass.config_entries.async_update_entry(
+            self.entry,
+            options=build_storage_dict(self.profile),
+        )
+        self._refresh_active_state()
+        self.async_write()
 
     def _prune_stale_clients(self, now: datetime) -> None:
         """Drop stale client heartbeats."""
@@ -216,8 +264,12 @@ class RotatorManager:
             ATTR_PROFILE: profile_for_frontend(self.profile),
             ATTR_COMMAND: deepcopy(self.command),
             ATTR_ACTIVE_CLIENT_ID: self.active_client_id,
+            ATTR_ACTIVE_CLIENT_ALIAS: self.get_client_alias(self.active_client_id),
             ATTR_ACTIVE_CLIENT_COUNT: len(self.client_states),
             ATTR_TARGET_CLIENT_ID: self.profile.get(CONF_TARGET_CLIENT_ID) or None,
             ATTR_CLIENT_STATE: deepcopy(self.client_state),
-            ATTR_CLIENT_STATES: deepcopy(self.client_states),
+            ATTR_CLIENT_STATES: {
+                client_id: self.decorate_client_state(state)
+                for client_id, state in self.client_states.items()
+            },
         }

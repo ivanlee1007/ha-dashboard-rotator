@@ -13,12 +13,13 @@
           "only_when_visible": "Only rotate when page is visible",
           "start_delay": "Start delay (seconds)",
           "target_client_id": "Target client ID (blank = all clients)",
+          "client_aliases_json": "Client aliases JSON",
           "views_json": "Views JSON"
         }
       }
     },
     "error": {
-      "invalid_views": "Views JSON is invalid. Check path prefixes and JSON syntax."
+      "invalid_views": "Views or client aliases JSON is invalid. Check syntax and path prefixes."
     },
     "abort": {
       "single_instance_allowed": "Only one Dashboard Rotator config entry is supported in MVP mode."
@@ -38,12 +39,13 @@
           "only_when_visible": "Only rotate when page is visible",
           "start_delay": "Start delay (seconds)",
           "target_client_id": "Target client ID (blank = all clients)",
+          "client_aliases_json": "Client aliases JSON",
           "views_json": "Views JSON"
         }
       }
     },
     "error": {
-      "invalid_views": "Views JSON is invalid. Check path prefixes and JSON syntax."
+      "invalid_views": "Views or client aliases JSON is invalid. Check syntax and path prefixes."
     }
   }
 }

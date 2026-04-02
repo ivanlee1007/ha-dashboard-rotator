@@ -12,11 +12,16 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
 )
 
 from .const import (
+    CONF_CLIENT_ALIASES_JSON,
     CONF_DASHBOARD_PATH,
     CONF_DEFAULT_INTERVAL,
     CONF_ENABLED,
@@ -26,6 +31,7 @@ from .const import (
     CONF_START_DELAY,
     CONF_TARGET_CLIENT_ID,
     CONF_VIEWS_JSON,
+    DEFAULT_CLIENT_ALIASES_JSON,
     DEFAULT_DASHBOARD_PATH,
     DEFAULT_ENABLED,
     DEFAULT_INTERVAL,
@@ -38,10 +44,33 @@ from .const import (
     DOMAIN,
     NAME,
 )
-from .helpers import InvalidViewsConfig, build_storage_dict, normalize_config
+from .helpers import (
+    InvalidAliasesConfig,
+    InvalidViewsConfig,
+    build_storage_dict,
+    normalize_config,
+)
 
 
-def _build_schema(defaults: dict[str, Any]) -> vol.Schema:
+def _build_target_selector(
+    client_options: list[SelectOptionDict] | None,
+) -> SelectSelector | TextSelector:
+    if client_options:
+        return SelectSelector(
+            SelectSelectorConfig(
+                options=client_options,
+                mode=SelectSelectorMode.DROPDOWN,
+                sort=False,
+            )
+        )
+    return TextSelector()
+
+
+def _build_schema(
+    defaults: dict[str, Any],
+    client_options: list[SelectOptionDict] | None = None,
+) -> vol.Schema:
+    target_selector = _build_target_selector(client_options)
     return vol.Schema(
         {
             vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_NAME)): TextSelector(),
@@ -95,7 +124,13 @@ def _build_schema(defaults: dict[str, Any]) -> vol.Schema:
             vol.Required(
                 CONF_TARGET_CLIENT_ID,
                 default=defaults.get(CONF_TARGET_CLIENT_ID, DEFAULT_TARGET_CLIENT_ID),
-            ): TextSelector(),
+            ): target_selector,
+            vol.Required(
+                CONF_CLIENT_ALIASES_JSON,
+                default=defaults.get(
+                    CONF_CLIENT_ALIASES_JSON, DEFAULT_CLIENT_ALIASES_JSON
+                ),
+            ): TextSelector(TextSelectorConfig(multiline=True)),
             vol.Required(
                 CONF_VIEWS_JSON,
                 default=defaults.get(CONF_VIEWS_JSON, DEFAULT_VIEWS_JSON),
@@ -118,7 +153,7 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 normalized = normalize_config(user_input)
-            except InvalidViewsConfig:
+            except (InvalidViewsConfig, InvalidAliasesConfig):
                 errors["base"] = "invalid_views"
             else:
                 return self.async_create_entry(
@@ -135,6 +170,7 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_ONLY_WHEN_VISIBLE: DEFAULT_ONLY_WHEN_VISIBLE,
             CONF_START_DELAY: DEFAULT_START_DELAY,
             CONF_TARGET_CLIENT_ID: DEFAULT_TARGET_CLIENT_ID,
+            CONF_CLIENT_ALIASES_JSON: DEFAULT_CLIENT_ALIASES_JSON,
             CONF_VIEWS_JSON: DEFAULT_VIEWS_JSON,
         }
 
@@ -155,13 +191,40 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
 class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
     """Options flow for Dashboard Rotator."""
 
+    def _build_client_options(self) -> list[SelectOptionDict]:
+        config = normalize_config({**self.config_entry.data, **self.config_entry.options})
+        alias_map = config.get("client_aliases", {})
+        manager = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+
+        options: list[SelectOptionDict] = [
+            SelectOptionDict(value="", label="All clients"),
+        ]
+        if not manager:
+            return options
+
+        for client_id, state in sorted(
+            manager.client_states.items(),
+            key=lambda item: item[1].get("updated_at") or "",
+            reverse=True,
+        ):
+            alias = (
+                alias_map.get(client_id)
+                or state.get("page_title")
+                or state.get("current_view")
+                or ""
+            )
+            status = state.get("status") or "idle"
+            label = " — ".join(bit for bit in [alias, client_id, status] if bit)
+            options.append(SelectOptionDict(value=client_id, label=label or client_id))
+        return options
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
 
         if user_input is not None:
             try:
                 normalized = normalize_config(user_input)
-            except InvalidViewsConfig:
+            except (InvalidViewsConfig, InvalidAliasesConfig):
                 errors["base"] = "invalid_views"
             else:
                 return self.async_create_entry(data=build_storage_dict(normalized))
@@ -169,6 +232,8 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
         defaults = normalize_config({**self.config_entry.data, **self.config_entry.options})
         return self.async_show_form(
             step_id="init",
-            data_schema=self.add_suggested_values_to_schema(_build_schema(defaults), defaults),
+            data_schema=self.add_suggested_values_to_schema(
+                _build_schema(defaults, self._build_client_options()), defaults
+            ),
             errors=errors,
         )

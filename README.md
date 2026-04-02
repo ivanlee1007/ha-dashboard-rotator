@@ -2,7 +2,7 @@
 
 Home Assistant custom integration that rotates Lovelace dashboard views on a timed interval.
 
-Current version: `0.1.3`
+Current version: `0.1.4`
 
 ## What it does
 
@@ -24,6 +24,8 @@ That profile contains:
 - default interval
 - pause-after-interaction seconds
 - start delay
+- target client picker
+- client aliases JSON
 - views JSON list
 
 ## Why this is an integration + frontend controller
@@ -85,6 +87,7 @@ Rules:
 Optional profile fields:
 
 - `target_client_id`: if set, only that specific browser client/tab will auto-rotate
+- `client_aliases_json`: optional `{ client_id: alias }` map for friendly labels
 
 You can discover active client IDs from the runtime sensor attributes or the optional status card.
 
@@ -106,6 +109,7 @@ You can discover active client IDs from the runtime sensor attributes or the opt
 - `dashboard_rotator.next_view`
 - `dashboard_rotator.previous_view`
 - `dashboard_rotator.jump_to_view`
+- `dashboard_rotator.set_client_alias`
 
 All command services support an optional `target_client_id` field.
 
@@ -115,6 +119,15 @@ Example:
 service: dashboard_rotator.pause
 data:
   target_client_id: dr-abc12345
+```
+
+Set or clear an alias:
+
+```yaml
+service: dashboard_rotator.set_client_alias
+data:
+  client_id: dr-abc12345
+  alias: lobby-tablet
 ```
 
 ## Optional status card
@@ -132,6 +145,13 @@ type: custom:dashboard-rotator-status
 entity: sensor.dashboard_rotator_runtime
 ```
 
+The status card shows:
+
+- target client
+- active client / alias
+- all recent clients
+- quick alias editing buttons
+
 ## How rotation works
 
 1. The integration loads a frontend module on HA pages.
@@ -144,14 +164,14 @@ entity: sensor.dashboard_rotator_runtime
 ## Known MVP limitations
 
 - single profile only
-- target selection is by raw `client_id` string today; there is no friendly picker UI yet
 - no visual config editor for the views list yet; it is JSON-based for now
+- aliases are still stored as JSON in options; there is no dedicated alias editor flow yet
 
 ## Planned next steps
 
 - multi-profile support
 - cleaner views editor UI
-- friendly per-client picker / labeling
+- dedicated alias editor / client management UI
 - schedules
 - random / ping-pong rotation modes
 

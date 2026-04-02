@@ -168,7 +168,11 @@ class DashboardRotatorController {
 
   async reportState(hass, payload) {
     if (!hass) return;
-    const key = JSON.stringify(payload);
+    const report = {
+      ...payload,
+      page_title: payload.page_title ?? document.title ?? null,
+    };
+    const key = JSON.stringify(report);
     const now = Date.now();
     if (key === this._lastReportKey && (now - this._lastReportAt) < REPORT_INTERVAL_MS) {
       return;
@@ -176,7 +180,7 @@ class DashboardRotatorController {
     this._lastReportKey = key;
     this._lastReportAt = now;
     try {
-      await hass.callService(DOMAIN, "client_state", payload);
+      await hass.callService(DOMAIN, "client_state", report);
     } catch (err) {
       console.debug("Dashboard Rotator client_state report failed", err);
     }
@@ -368,6 +372,14 @@ class DashboardRotatorStatusCard extends HTMLElement {
         if (!action || !this._hass) return;
         const targetClientId = String(this._config?.target_client_id || "").trim();
         const data = targetClientId ? { target_client_id: targetClientId } : {};
+        if (action === "alias" && ev.target.dataset.clientId) {
+          const clientId = ev.target.dataset.clientId;
+          const currentAlias = ev.target.dataset.alias || "";
+          const alias = window.prompt(`Alias for ${clientId}`, currentAlias);
+          if (alias === null) return;
+          this._hass.callService(DOMAIN, "set_client_alias", { client_id: clientId, alias });
+          return;
+        }
         if (action === "jump" && ev.target.dataset.path) {
           this._hass.callService(DOMAIN, "jump_to_view", { ...data, path: ev.target.dataset.path });
           return;
@@ -411,6 +423,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
     const client = attrs.client_state || {};
     const clientStates = attrs.client_states || {};
     const activeClientId = attrs.active_client_id || null;
+    const activeClientAlias = attrs.active_client_alias || null;
     const targetClientId = attrs.target_client_id || profile.target_client_id || null;
     const views = Array.isArray(profile.views) ? profile.views.filter((view) => view.enabled !== false) : [];
     const clients = Object.values(clientStates)
@@ -437,7 +450,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
           <div class="row"><strong>Dashboard</strong><span>${profile.dashboard_path || "-"}</span></div>
           <div class="row"><strong>Target client</strong><span>${targetClientId || "all clients"}</span></div>
           ${this._config?.target_client_id ? `<div class="row"><strong>Card command target</strong><span>${this._config.target_client_id}</span></div>` : ''}
-          <div class="row"><strong>Active client</strong><span>${activeClientId || "-"}</span></div>
+          <div class="row"><strong>Active client</strong><span>${activeClientAlias ? `${activeClientAlias} (${activeClientId || '-'})` : (activeClientId || "-")}</span></div>
           <div class="row"><strong>Clients</strong><span>${clients.length}</span></div>
           <div class="row"><strong>Current</strong><span>${client.current_view || "-"}</span></div>
           <div class="row"><strong>Next</strong><span>${client.next_view || "-"}</span></div>
@@ -456,12 +469,15 @@ class DashboardRotatorStatusCard extends HTMLElement {
             ${clients.map((item) => `
               <div class="client-item ${item.client_id === activeClientId ? 'active' : ''}">
                 <div class="client-head">
-                  <span>${item.client_id || '-'}${item.client_id === targetClientId ? ' 🎯' : ''}</span>
+                  <span>${item.display_name || item.client_id || '-'}${item.client_id === targetClientId ? ' 🎯' : ''}</span>
                   <span>${item.status || '-'}</span>
                 </div>
+                <div class="tiny">id: ${item.client_id || '-'}</div>
                 <div class="tiny">current: ${item.current_view || '-'} | next: ${item.next_view || '-'}</div>
                 <div class="tiny">remaining: ${item.remaining_seconds ?? '-'} | visible: ${item.page_visible ?? '-'}</div>
+                <div class="tiny">title: ${item.page_title || '-'}</div>
                 <div class="tiny">updated: ${item.updated_at || '-'}</div>
+                <div style="margin-top:8px;"><button data-action="alias" data-client-id="${item.client_id || ''}" data-alias="${item.client_alias || ''}">Set alias</button></div>
               </div>
             `).join('')}
           </div>

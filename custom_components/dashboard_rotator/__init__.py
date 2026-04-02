@@ -27,6 +27,7 @@ from .const import (
     SERVICE_PAUSE,
     SERVICE_PREVIOUS_VIEW,
     SERVICE_RESUME,
+    SERVICE_SET_CLIENT_ALIAS,
 )
 from .helpers import normalize_path
 from .manager import RotatorManager
@@ -49,6 +50,13 @@ SERVICE_CLIENT_STATE_SCHEMA = vol.Schema(
         vol.Optional("remaining_seconds"): vol.Any(None, vol.Coerce(int)),
         vol.Optional("page_visible"): vol.Any(None, bool),
         vol.Optional("on_managed_dashboard"): vol.Any(None, bool),
+        vol.Optional("page_title"): vol.Any(None, cv.string),
+    }
+)
+SERVICE_SET_CLIENT_ALIAS_SCHEMA = vol.Schema(
+    {
+        vol.Required("client_id"): cv.string,
+        vol.Optional("alias"): cv.string,
     }
 )
 
@@ -109,6 +117,14 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         if manager:
             await manager.async_set_client_state(dict(call.data))
 
+    async def _handle_set_client_alias(call: ServiceCall) -> None:
+        manager = _get_manager(hass)
+        if manager:
+            await manager.async_set_client_alias(
+                call.data["client_id"],
+                call.data.get("alias"),
+            )
+
     if not hass.services.has_service(DOMAIN, SERVICE_PAUSE):
         hass.services.async_register(DOMAIN, SERVICE_PAUSE, _handle_pause, schema=SERVICE_BASE_SCHEMA)
         hass.services.async_register(DOMAIN, SERVICE_RESUME, _handle_resume, schema=SERVICE_BASE_SCHEMA)
@@ -124,6 +140,12 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             SERVICE_CLIENT_STATE,
             _handle_client_state,
             schema=SERVICE_CLIENT_STATE_SCHEMA,
+        )
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_SET_CLIENT_ALIAS,
+            _handle_set_client_alias,
+            schema=SERVICE_SET_CLIENT_ALIAS_SCHEMA,
         )
 
     return True

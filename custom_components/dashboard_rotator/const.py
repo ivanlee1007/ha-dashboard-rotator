@@ -5,7 +5,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "dashboard_rotator"
 NAME = "Dashboard Rotator"
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 
 PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.BUTTON]
 
@@ -20,6 +20,8 @@ CONF_PAUSE_ON_INTERACTION = "pause_on_interaction"
 CONF_ONLY_WHEN_VISIBLE = "only_when_visible"
 CONF_START_DELAY = "start_delay"
 CONF_TARGET_CLIENT_ID = "target_client_id"
+CONF_CLIENT_ALIASES_JSON = "client_aliases_json"
+CONF_CLIENT_ALIASES = "client_aliases"
 CONF_VIEWS_JSON = "views_json"
 CONF_VIEWS = "views"
 CONF_PATH = "path"
@@ -34,6 +36,7 @@ DEFAULT_PAUSE_ON_INTERACTION = 60
 DEFAULT_ONLY_WHEN_VISIBLE = True
 DEFAULT_START_DELAY = 3
 DEFAULT_TARGET_CLIENT_ID = ""
+DEFAULT_CLIENT_ALIASES_JSON = "{}"
 DEFAULT_VIEWS_JSON = """[
   {
     \"path\": \"/lovelace/home\",
@@ -53,6 +56,7 @@ SERVICE_NEXT_VIEW = "next_view"
 SERVICE_PREVIOUS_VIEW = "previous_view"
 SERVICE_JUMP_TO_VIEW = "jump_to_view"
 SERVICE_CLIENT_STATE = "client_state"
+SERVICE_SET_CLIENT_ALIAS = "set_client_alias"
 
 ATTR_PROFILE = "profile"
 ATTR_COMMAND = "command"
@@ -61,6 +65,7 @@ ATTR_CLIENT_STATES = "client_states"
 ATTR_ACTIVE_CLIENT_ID = "active_client_id"
 ATTR_ACTIVE_CLIENT_COUNT = "active_client_count"
 ATTR_TARGET_CLIENT_ID = "target_client_id"
+ATTR_ACTIVE_CLIENT_ALIAS = "active_client_alias"
 ATTR_INTEGRATION_DOMAIN = "integration_domain"
 ATTR_ENTITY_ROLE = "entity_role"
 ATTR_VERSION = "version"

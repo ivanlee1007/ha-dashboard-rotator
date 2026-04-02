@@ -51,3 +51,17 @@ jump_to_view:
 client_state:
   name: Client state heartbeat
   description: Internal service used by the frontend controller to report current state.
+set_client_alias:
+  name: Set client alias
+  description: Assign or clear a friendly alias for a browser client.
+  fields:
+    client_id:
+      required: true
+      example: dr-abc12345
+      selector:
+        text:
+    alias:
+      required: false
+      example: lobby-tablet
+      selector:
+        text:

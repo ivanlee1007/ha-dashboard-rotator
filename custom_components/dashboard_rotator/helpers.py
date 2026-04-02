@@ -8,6 +8,8 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 
 from .const import (
+    CONF_CLIENT_ALIASES,
+    CONF_CLIENT_ALIASES_JSON,
     CONF_DASHBOARD_PATH,
     CONF_DEFAULT_INTERVAL,
     CONF_ENABLED,
@@ -21,6 +23,7 @@ from .const import (
     CONF_TITLE,
     CONF_VIEWS,
     CONF_VIEWS_JSON,
+    DEFAULT_CLIENT_ALIASES_JSON,
     DEFAULT_DASHBOARD_PATH,
     DEFAULT_ENABLED,
     DEFAULT_INTERVAL,
@@ -35,6 +38,10 @@ from .const import (
 
 class InvalidViewsConfig(ValueError):
     """Raised when the views JSON is invalid."""
+
+
+class InvalidAliasesConfig(ValueError):
+    """Raised when the aliases JSON is invalid."""
 
 
 def normalize_path(path: str) -> str:
@@ -68,6 +75,32 @@ def _coerce_int(value: Any, default: int) -> int:
 def format_views_json(views: list[dict[str, Any]]) -> str:
     """Format the views list as pretty JSON."""
     return json.dumps(views, indent=2, ensure_ascii=False)
+
+
+def format_aliases_json(aliases: dict[str, str]) -> str:
+    """Format aliases as pretty JSON."""
+    return json.dumps(aliases, indent=2, ensure_ascii=False, sort_keys=True)
+
+
+def parse_aliases_json(raw: str) -> dict[str, str]:
+    """Parse and validate client aliases JSON."""
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as err:
+        raise InvalidAliasesConfig(f"Invalid JSON: {err.msg}") from err
+
+    if not isinstance(parsed, dict):
+        raise InvalidAliasesConfig("Client aliases JSON must be an object")
+
+    aliases: dict[str, str] = {}
+    for key, value in parsed.items():
+        client_id = str(key or "").strip()
+        alias = str(value or "").strip()
+        if not client_id:
+            raise InvalidAliasesConfig("Client alias keys must be non-empty")
+        if alias:
+            aliases[client_id] = alias
+    return aliases
 
 
 def parse_views_json(raw: str, dashboard_path: str, default_interval: int) -> list[dict[str, Any]]:
@@ -131,6 +164,11 @@ def normalize_config(data: dict[str, Any]) -> dict[str, Any]:
     start_delay = max(0, _coerce_int(data.get(CONF_START_DELAY), DEFAULT_START_DELAY))
     views_json = str(data.get(CONF_VIEWS_JSON, DEFAULT_VIEWS_JSON)).strip() or DEFAULT_VIEWS_JSON
     views = parse_views_json(views_json, dashboard_path, default_interval)
+    aliases_json = (
+        str(data.get(CONF_CLIENT_ALIASES_JSON, DEFAULT_CLIENT_ALIASES_JSON)).strip()
+        or DEFAULT_CLIENT_ALIASES_JSON
+    )
+    aliases = parse_aliases_json(aliases_json)
     target_client_id = str(
         data.get(CONF_TARGET_CLIENT_ID, DEFAULT_TARGET_CLIENT_ID) or ""
     ).strip()
@@ -146,6 +184,8 @@ def normalize_config(data: dict[str, Any]) -> dict[str, Any]:
         ),
         CONF_START_DELAY: start_delay,
         CONF_TARGET_CLIENT_ID: target_client_id,
+        CONF_CLIENT_ALIASES_JSON: format_aliases_json(aliases),
+        CONF_CLIENT_ALIASES: aliases,
         CONF_VIEWS_JSON: format_views_json(views),
         CONF_VIEWS: views,
     }
@@ -168,6 +208,7 @@ def build_storage_dict(config: dict[str, Any]) -> dict[str, Any]:
         CONF_ONLY_WHEN_VISIBLE: config[CONF_ONLY_WHEN_VISIBLE],
         CONF_START_DELAY: config[CONF_START_DELAY],
         CONF_TARGET_CLIENT_ID: config[CONF_TARGET_CLIENT_ID],
+        CONF_CLIENT_ALIASES_JSON: config[CONF_CLIENT_ALIASES_JSON],
         CONF_VIEWS_JSON: config[CONF_VIEWS_JSON],
     }
 
