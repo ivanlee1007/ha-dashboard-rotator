@@ -22,6 +22,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CONF_CLIENT_ALIASES,
     CONF_CLIENT_ALIASES_JSON,
     CONF_DASHBOARD_PATH,
     CONF_DEFAULT_INTERVAL,
@@ -57,6 +58,8 @@ from .helpers import (
 )
 
 FIELD_SELECTED_VIEW = "selected_view"
+FIELD_SELECTED_CLIENT = "selected_client"
+FIELD_ALIAS = "alias"
 FIELD_POSITION = "position"
 
 
@@ -75,6 +78,43 @@ def _views_summary(views: list[dict[str, Any]]) -> str:
         f" | {'on' if view.get('enabled', True) else 'off'}"
         for index, view in enumerate(views)
     )
+
+
+def _client_option_label(
+    client_id: str,
+    alias: str | None = None,
+    state: dict[str, Any] | None = None,
+) -> str:
+    bits: list[str] = []
+    if alias:
+        bits.append(alias)
+    bits.append(client_id)
+    if state:
+        status = state.get("status")
+        if status:
+            bits.append(str(status))
+    return " — ".join(bits)
+
+
+def _clients_summary(
+    aliases: dict[str, str],
+    states: dict[str, dict[str, Any]] | None = None,
+    target_client_id: str | None = None,
+) -> str:
+    states = states or {}
+    known_client_ids = sorted(set(states) | set(aliases) | ({target_client_id} if target_client_id else set()))
+    if not known_client_ids:
+        return "- (none)"
+
+    lines: list[str] = []
+    for client_id in known_client_ids:
+        alias = aliases.get(client_id) or ""
+        state = states.get(client_id) or {}
+        status = state.get("status") or "offline"
+        marker = " 🎯" if client_id == target_client_id and target_client_id else ""
+        label = alias or state.get("page_title") or client_id
+        lines.append(f"- {label} | {client_id} | {status}{marker}")
+    return "\n".join(lines)
 
 
 def _build_target_selector(
@@ -254,6 +294,32 @@ def _build_view_select_schema(options: list[SelectOptionDict]) -> vol.Schema:
                     sort=False,
                 )
             )
+        }
+    )
+
+
+def _build_client_select_schema(
+    options: list[SelectOptionDict],
+    field_name: str = FIELD_SELECTED_CLIENT,
+    default: str | None = None,
+) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(field_name, default=default if default is not None else options[0]["value"]): SelectSelector(
+                SelectSelectorConfig(
+                    options=options,
+                    mode=SelectSelectorMode.DROPDOWN,
+                    sort=False,
+                )
+            )
+        }
+    )
+
+
+def _build_client_alias_schema(defaults: dict[str, Any]) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(FIELD_ALIAS, default=defaults.get(FIELD_ALIAS, "")): TextSelector(),
         }
     )
 
@@ -527,6 +593,7 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
         super().__init__()
         self._working: dict[str, Any] | None = None
         self._selected_view_index: int | None = None
+        self._selected_client_id: str | None = None
 
     def _ensure_working(self) -> dict[str, Any]:
         if self._working is None:
@@ -548,31 +615,40 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
             CONF_VIEWS_JSON: format_views_json(views),
         }
 
-    def _build_client_options(self) -> list[SelectOptionDict]:
+    def _build_aliases_payload(self, aliases: dict[str, str]) -> dict[str, Any]:
+        return {
+            CONF_CLIENT_ALIASES_JSON: format_aliases_json(aliases),
+        }
+
+    def _get_runtime_states(self) -> dict[str, dict[str, Any]]:
+        manager = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+        if not manager:
+            return {}
+        return dict(manager.client_states)
+
+    def _build_client_options(self, include_all: bool = True) -> list[SelectOptionDict]:
         config = self._ensure_working()
         alias_map = config.get("client_aliases", {})
-        manager = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+        states = self._get_runtime_states()
 
-        options: list[SelectOptionDict] = [
-            SelectOptionDict(value="", label="All clients"),
-        ]
-        if not manager:
+        options: list[SelectOptionDict] = []
+        if include_all:
+            options.append(SelectOptionDict(value="", label="All clients"))
+        if not states:
             return options
 
         for client_id, state in sorted(
-            manager.client_states.items(),
+            states.items(),
             key=lambda item: item[1].get("updated_at") or "",
             reverse=True,
         ):
-            alias = (
-                alias_map.get(client_id)
-                or state.get("page_title")
-                or state.get("current_view")
-                or ""
+            alias = alias_map.get(client_id) or state.get("page_title") or state.get("current_view") or ""
+            options.append(
+                SelectOptionDict(
+                    value=client_id,
+                    label=_client_option_label(client_id, alias, state),
+                )
             )
-            status = state.get("status") or "idle"
-            label = " — ".join(bit for bit in [alias, client_id, status] if bit)
-            options.append(SelectOptionDict(value=client_id, label=label or client_id))
         return options
 
     def _build_view_options(self) -> list[SelectOptionDict]:
@@ -585,10 +661,94 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
         config = self._ensure_working()
         return self.async_show_menu(
             step_id="init",
-            menu_options=["general", "views", "advanced", "save"],
+            menu_options=["general", "views", "clients", "advanced", "save"],
             description_placeholders={
                 "views_summary": _views_summary(config[CONF_VIEWS]),
                 "target_client": config.get(CONF_TARGET_CLIENT_ID) or "all clients",
+            },
+        )
+
+    async def async_step_clients(self, user_input: dict[str, Any] | None = None):
+        config = self._ensure_working()
+        return self.async_show_menu(
+            step_id="clients",
+            menu_options=["edit_target_client", "edit_client_alias_select", "init", "save"],
+            description_placeholders={
+                "clients_summary": _clients_summary(
+                    config.get(CONF_CLIENT_ALIASES, {}),
+                    self._get_runtime_states(),
+                    config.get(CONF_TARGET_CLIENT_ID) or None,
+                ),
+            },
+        )
+
+    async def async_step_edit_target_client(self, user_input: dict[str, Any] | None = None):
+        config = self._ensure_working()
+        options = self._build_client_options(include_all=True)
+        if user_input is not None:
+            try:
+                self._set_working(self._build_candidate({CONF_TARGET_CLIENT_ID: user_input[CONF_TARGET_CLIENT_ID]}))
+            except (InvalidViewsConfig, InvalidAliasesConfig):
+                return self.async_show_form(
+                    step_id="edit_target_client",
+                    data_schema=_build_client_select_schema(
+                        options,
+                        field_name=CONF_TARGET_CLIENT_ID,
+                        default=config.get(CONF_TARGET_CLIENT_ID, ""),
+                    ),
+                    errors={"base": "invalid_views"},
+                )
+            return await self.async_step_clients()
+
+        return self.async_show_form(
+            step_id="edit_target_client",
+            data_schema=_build_client_select_schema(
+                options,
+                field_name=CONF_TARGET_CLIENT_ID,
+                default=config.get(CONF_TARGET_CLIENT_ID, ""),
+            ),
+        )
+
+    async def async_step_edit_client_alias_select(self, user_input: dict[str, Any] | None = None):
+        options = self._build_client_options(include_all=False)
+        if not options:
+            return await self.async_step_clients()
+        if user_input is not None:
+            self._selected_client_id = str(user_input[FIELD_SELECTED_CLIENT])
+            return await self.async_step_edit_client_alias()
+
+        return self.async_show_form(
+            step_id="edit_client_alias_select",
+            data_schema=_build_client_select_schema(options),
+        )
+
+    async def async_step_edit_client_alias(self, user_input: dict[str, Any] | None = None):
+        config = self._ensure_working()
+        client_id = self._selected_client_id
+        aliases = dict(config.get(CONF_CLIENT_ALIASES, {}))
+        states = self._get_runtime_states()
+        if not client_id:
+            return await self.async_step_clients()
+
+        if user_input is not None:
+            alias = str(user_input.get(FIELD_ALIAS) or "").strip()
+            if alias:
+                aliases[client_id] = alias
+            else:
+                aliases.pop(client_id, None)
+            self._set_working(self._build_candidate(self._build_aliases_payload(aliases)))
+            self._selected_client_id = None
+            return await self.async_step_clients()
+
+        defaults = {
+            FIELD_ALIAS: aliases.get(client_id, ""),
+        }
+        state = states.get(client_id) or {}
+        return self.async_show_form(
+            step_id="edit_client_alias",
+            data_schema=_build_client_alias_schema(defaults),
+            description_placeholders={
+                "client_label": _client_option_label(client_id, aliases.get(client_id), state),
             },
         )
 

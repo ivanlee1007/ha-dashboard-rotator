@@ -98,6 +98,7 @@
         "menu_options": {
           "general": "General settings",
           "views": "Views editor",
+          "clients": "Client management",
           "advanced": "Advanced JSON",
           "save": "Save changes"
         },
@@ -128,6 +129,38 @@
           "save": "Save changes"
         },
         "data": {}
+      },
+      "clients": {
+        "title": "Client management",
+        "description": "Manage target selection and aliases.\n\nKnown clients:\n{clients_summary}",
+        "menu_options": {
+          "edit_target_client": "Choose target client",
+          "edit_client_alias_select": "Edit client alias",
+          "init": "Back to main menu",
+          "save": "Save changes"
+        },
+        "data": {}
+      },
+      "edit_target_client": {
+        "title": "Choose target client",
+        "description": "Select which client should receive automatic rotation. Choose all clients to disable targeting.",
+        "data": {
+          "target_client_id": "Target client"
+        }
+      },
+      "edit_client_alias_select": {
+        "title": "Select a client",
+        "description": "Choose which client alias you want to edit.",
+        "data": {
+          "selected_client": "Client"
+        }
+      },
+      "edit_client_alias": {
+        "title": "Edit client alias",
+        "description": "Set a friendly alias for {client_label}. Leave blank to clear it.",
+        "data": {
+          "alias": "Alias"
+        }
       },
       "add_view": {
         "title": "Add view",
