@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import UTC, datetime
 from typing import Any
 
 import voluptuous as vol
@@ -22,6 +23,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CLIENT_STALE_SECONDS,
     CONF_CLIENT_ALIASES,
     CONF_CLIENT_ALIASES_JSON,
     CONF_DASHBOARD_PATH,
@@ -63,6 +65,53 @@ FIELD_ALIAS = "alias"
 FIELD_POSITION = "position"
 
 
+def _parse_updated_at(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _age_seconds(state: dict[str, Any] | None) -> int | None:
+    if not state:
+        return None
+    seen = _parse_updated_at(state.get("updated_at"))
+    if not seen:
+        return None
+    return max(0, int((datetime.now(UTC) - seen).total_seconds()))
+
+
+def _format_age_label(seconds: int | None) -> str:
+    if seconds is None:
+        return "never"
+    if seconds < 60:
+        return f"{seconds}s ago"
+    minutes, rem = divmod(seconds, 60)
+    if minutes < 60:
+        return f"{minutes}m {rem}s ago"
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}h {minutes}m ago"
+
+
+def _presence_label(state: dict[str, Any] | None) -> str:
+    if not state:
+        return "offline"
+    age = _age_seconds(state)
+    if age is None:
+        return "unknown"
+    if age > CLIENT_STALE_SECONDS:
+        return "stale"
+    if not state.get("on_managed_dashboard"):
+        return "other-page"
+    if not state.get("page_visible") or state.get("status") == "hidden":
+        return "dashboard-hidden"
+    if state.get("status") in {"running", "navigating", "interaction_pause", "manual_pause", "waiting_start"}:
+        return "dashboard-active"
+    return "dashboard-idle"
+
+
 def _view_option_label(index: int, view: dict[str, Any]) -> str:
     title = str(view.get("title") or "").strip() or view["path"]
     enabled = "enabled" if view.get("enabled", True) else "disabled"
@@ -93,6 +142,7 @@ def _client_option_label(
         status = state.get("status")
         if status:
             bits.append(str(status))
+        bits.append(_presence_label(state))
     return " — ".join(bits)
 
 
@@ -111,9 +161,11 @@ def _clients_summary(
         alias = aliases.get(client_id) or ""
         state = states.get(client_id) or {}
         status = state.get("status") or "offline"
+        presence = _presence_label(state)
+        last_seen = _format_age_label(_age_seconds(state))
         marker = " 🎯" if client_id == target_client_id and target_client_id else ""
         label = alias or state.get("page_title") or client_id
-        lines.append(f"- {label} | {client_id} | {status}{marker}")
+        lines.append(f"- {label} | {client_id} | {status} | {presence} | {last_seen}{marker}")
     return "\n".join(lines)
 
 
@@ -136,6 +188,8 @@ def _client_details_placeholders(
     return {
         "client_label": _client_option_label(client_id, alias, state),
         "status": _stringify(state.get("status"), "offline"),
+        "presence": _presence_label(state),
+        "last_seen": _format_age_label(_age_seconds(state)),
         "page_title": _stringify(state.get("page_title")),
         "current_view": _stringify(state.get("current_view")),
         "next_view": _stringify(state.get("next_view")),

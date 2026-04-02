@@ -152,7 +152,7 @@
       },
       "view_client_details": {
         "title": "Client details",
-        "description": "Client: {client_label}\n\nStatus: {status}\nPage title: {page_title}\nCurrent view: {current_view}\nNext view: {next_view}\nPage visible: {page_visible}\nOn managed dashboard: {on_managed_dashboard}\nLast update: {updated_at}\nIs target client: {is_target}",
+        "description": "Client: {client_label}\n\nStatus: {status}\nPresence: {presence}\nLast seen: {last_seen}\nPage title: {page_title}\nCurrent view: {current_view}\nNext view: {next_view}\nPage visible: {page_visible}\nOn managed dashboard: {on_managed_dashboard}\nLast update: {updated_at}\nIs target client: {is_target}",
         "menu_options": {
           "set_selected_target_client": "Set as target client",
           "edit_client_alias": "Edit alias",
