@@ -2,7 +2,7 @@
 
 Home Assistant custom integration that rotates Lovelace dashboard views on a timed interval.
 
-Current version: `0.1.4`
+Current version: `0.1.5`
 
 ## What it does
 
@@ -26,7 +26,8 @@ That profile contains:
 - start delay
 - target client picker
 - client aliases JSON
-- views JSON list
+- views GUI editor
+- views JSON fallback (advanced)
 
 ## Why this is an integration + frontend controller
 
@@ -164,14 +165,14 @@ The status card shows:
 ## Known MVP limitations
 
 - single profile only
-- no visual config editor for the views list yet; it is JSON-based for now
 - aliases are still stored as JSON in options; there is no dedicated alias editor flow yet
+- initial setup flow still uses JSON; the GUI editor currently lives in the options flow
 
 ## Planned next steps
 
 - multi-profile support
-- cleaner views editor UI
 - dedicated alias editor / client management UI
+- bring the same GUI views editor to the initial setup flow
 - schedules
 - random / ping-pong rotation modes
 
