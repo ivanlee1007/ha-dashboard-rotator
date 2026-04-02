@@ -4,6 +4,8 @@ Home Assistant custom integration that rotates Lovelace dashboard views on a tim
 
 Current version: `0.1.10`
 
+Chinese manual / 中文使用說明：[`README.zh-TW.md`](./README.zh-TW.md)
+
 ## What it does
 
 - Rotates dashboard tabs/views by configured seconds
