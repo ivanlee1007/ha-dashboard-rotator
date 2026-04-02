@@ -136,6 +136,7 @@
         "menu_options": {
           "view_client_details_select": "View client details",
           "edit_target_client": "Choose target client",
+          "clear_target_client": "Clear target client",
           "edit_client_alias_select": "Edit client alias",
           "init": "Back to main menu",
           "save": "Save changes"
@@ -155,6 +156,7 @@
         "menu_options": {
           "set_selected_target_client": "Set as target client",
           "edit_client_alias": "Edit alias",
+          "clear_selected_client_alias": "Clear alias",
           "clients": "Back to client management"
         },
         "data": {}
@@ -162,6 +164,11 @@
       "set_selected_target_client": {
         "title": "Target updated",
         "description": "This client is now the target client.",
+        "data": {}
+      },
+      "clear_target_client": {
+        "title": "Target cleared",
+        "description": "Targeting has been cleared. All clients are eligible again.",
         "data": {}
       },
       "edit_target_client": {
@@ -184,6 +191,11 @@
         "data": {
           "alias": "Alias"
         }
+      },
+      "clear_selected_client_alias": {
+        "title": "Alias cleared",
+        "description": "The selected client's alias has been removed.",
+        "data": {}
       },
       "add_view": {
         "title": "Add view",

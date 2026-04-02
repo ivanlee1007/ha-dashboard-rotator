@@ -2,7 +2,7 @@
 
 Home Assistant custom integration that rotates Lovelace dashboard views on a timed interval.
 
-Current version: `0.1.8`
+Current version: `0.1.9`
 
 ## What it does
 
@@ -33,7 +33,7 @@ That profile contains:
 
 Both the initial setup flow and the post-install options flow now use the same GUI-style editor.
 
-The options flow also includes a client-management step for choosing the target client, inspecting client details, and editing per-client aliases without touching raw JSON.
+The options flow also includes a client-management step for choosing or clearing the target client, inspecting client details, and editing or clearing per-client aliases without touching raw JSON.
 
 ## Why this is an integration + frontend controller
 
@@ -162,8 +162,8 @@ The status card shows:
 The options flow client-management step shows:
 
 - known clients summary
-- target-client chooser
-- per-client alias editor
+- target-client chooser / clear target action
+- per-client alias editor / clear alias action
 - per-client details (status, views, visibility, last update)
 
 ## How rotation works
