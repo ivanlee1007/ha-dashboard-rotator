@@ -3,7 +3,18 @@
     "step": {
       "user": {
         "title": "Dashboard Rotator",
-        "description": "Configure one dashboard rotation profile. Views are edited as a JSON array.",
+        "description": "Configure one dashboard rotation profile.\n\nTarget client: {target_client}\n\nCurrent views:\n{views_summary}",
+        "menu_options": {
+          "general": "General settings",
+          "views": "Views editor",
+          "advanced": "Advanced JSON",
+          "save": "Create entry"
+        },
+        "data": {}
+      },
+      "general": {
+        "title": "General settings",
+        "description": "Edit the profile behavior and client targeting.",
         "data": {
           "name": "Profile name",
           "dashboard_path": "Dashboard base path",
@@ -12,7 +23,61 @@
           "pause_on_interaction": "Pause after interaction (seconds)",
           "only_when_visible": "Only rotate when page is visible",
           "start_delay": "Start delay (seconds)",
-          "target_client_id": "Target client ID (blank = all clients)",
+          "target_client_id": "Target client ID (blank = all clients)"
+        }
+      },
+      "views": {
+        "title": "Views editor",
+        "description": "Manage the rotation order here.\n\nCurrent views:\n{views_summary}",
+        "menu_options": {
+          "add_view": "Add view",
+          "edit_view_select": "Edit view",
+          "delete_view_select": "Delete view",
+          "user": "Back to main menu",
+          "save": "Create entry"
+        },
+        "data": {}
+      },
+      "add_view": {
+        "title": "Add view",
+        "description": "Create a new view entry and choose where it sits in the rotation order.",
+        "data": {
+          "path": "View path",
+          "title": "View title",
+          "seconds": "View interval (seconds)",
+          "enabled": "Enabled",
+          "position": "Position"
+        }
+      },
+      "edit_view_select": {
+        "title": "Select a view to edit",
+        "description": "Pick which view you want to edit.",
+        "data": {
+          "selected_view": "View"
+        }
+      },
+      "edit_view": {
+        "title": "Edit view",
+        "description": "Update the selected view and optionally move it to a new position.",
+        "data": {
+          "path": "View path",
+          "title": "View title",
+          "seconds": "View interval (seconds)",
+          "enabled": "Enabled",
+          "position": "Position"
+        }
+      },
+      "delete_view_select": {
+        "title": "Delete view",
+        "description": "Pick which view should be removed from the rotation.",
+        "data": {
+          "selected_view": "View"
+        }
+      },
+      "advanced": {
+        "title": "Advanced JSON",
+        "description": "Raw JSON fallback for aliases and views.",
+        "data": {
           "client_aliases_json": "Client aliases JSON",
           "views_json": "Views JSON"
         }
