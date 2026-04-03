@@ -852,7 +852,7 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
         state = self._get_selected_client_state()
         return self.async_show_menu(
             step_id="view_client_details",
-            menu_options=["set_selected_target_client", "edit_client_alias", "clear_selected_client_alias", "clients"],
+            menu_options=["add_selected_target_client", "remove_selected_target_client", "edit_client_alias", "clear_selected_client_alias", "clients"],
             description_placeholders=_client_details_placeholders(
                 client_id,
                 aliases.get(client_id),
@@ -861,11 +861,24 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
             ),
         )
 
-    async def async_step_set_selected_target_client(self, user_input: dict[str, Any] | None = None):
+    async def async_step_add_selected_target_client(self, user_input: dict[str, Any] | None = None):
         client_id = self._selected_client_id
         if not client_id:
             return await self.async_step_clients()
-        self._set_working(self._build_candidate(_build_target_payload([client_id])))
+        config = self._ensure_working()
+        current = list(config.get(CONF_TARGET_CLIENT_IDS, []))
+        if client_id not in current:
+            current.append(client_id)
+        self._set_working(self._build_candidate(_build_target_payload(current)))
+        return await self.async_step_view_client_details()
+
+    async def async_step_remove_selected_target_client(self, user_input: dict[str, Any] | None = None):
+        client_id = self._selected_client_id
+        if not client_id:
+            return await self.async_step_clients()
+        config = self._ensure_working()
+        current = [item for item in config.get(CONF_TARGET_CLIENT_IDS, []) if item != client_id]
+        self._set_working(self._build_candidate(_build_target_payload(current)))
         return await self.async_step_view_client_details()
 
     async def async_step_clear_selected_client_alias(self, user_input: dict[str, Any] | None = None):
@@ -885,7 +898,14 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
         if user_input is not None:
             try:
                 client_id = str(user_input.get(CONF_TARGET_CLIENT_ID, "") or "").strip()
-                self._set_working(self._build_candidate(_build_target_payload([client_id] if client_id else [])))
+                current = list(config.get(CONF_TARGET_CLIENT_IDS, []))
+                if not client_id:
+                    next_targets: list[str] = []
+                elif client_id in current:
+                    next_targets = current
+                else:
+                    next_targets = [*current, client_id]
+                self._set_working(self._build_candidate(_build_target_payload(next_targets)))
             except (InvalidViewsConfig, InvalidAliasesConfig):
                 return self.async_show_form(
                     step_id="edit_target_client",
@@ -903,7 +923,7 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
             data_schema=_build_client_select_schema(
                 options,
                 field_name=CONF_TARGET_CLIENT_ID,
-                default=config.get(CONF_TARGET_CLIENT_ID, ""),
+                default="",
             ),
         )
 

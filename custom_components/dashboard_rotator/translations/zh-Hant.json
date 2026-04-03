@@ -135,7 +135,7 @@
         "description": "管理目標 client 與別名。\n\n已知 client：\n{clients_summary}",
         "menu_options": {
           "view_client_details_select": "查看 client 詳細資訊",
-          "edit_target_client": "選擇目標 client",
+          "edit_target_client": "加入 target client",
           "clear_target_client": "清除目標 client",
           "edit_client_alias_select": "編輯 client 別名",
           "init": "回到主選單",
@@ -154,16 +154,22 @@
         "title": "Client 詳細資訊",
         "description": "Client：{client_label}\n\n狀態：{status}\nPresence：{presence}\n最後出現：{last_seen}\n頁面標題：{page_title}\n目前頁面：{current_view}\n下一頁：{next_view}\n頁面可見：{page_visible}\n在管理中的儀表板上：{on_managed_dashboard}\n最後更新：{updated_at}\n是否為目標 client：{is_target}",
         "menu_options": {
-          "set_selected_target_client": "設成目標 client",
+          "add_selected_target_client": "加入 targets",
+          "remove_selected_target_client": "移出 targets",
           "edit_client_alias": "編輯別名",
           "clear_selected_client_alias": "清除別名",
           "clients": "回到 Client 管理"
         },
         "data": {}
       },
-      "set_selected_target_client": {
+      "add_selected_target_client": {
         "title": "目標已更新",
-        "description": "這個 client 現在已被設為目標 client。",
+        "description": "這個 client 已加入 target 清單。",
+        "data": {}
+      },
+      "remove_selected_target_client": {
+        "title": "目標已更新",
+        "description": "這個 client 已從 target 清單移除。",
         "data": {}
       },
       "clear_target_client": {
@@ -172,8 +178,8 @@
         "data": {}
       },
       "edit_target_client": {
-        "title": "選擇目標 client",
-        "description": "選擇哪個 client 應該接收自動輪播。選擇全部 client 可停用 target 限制。",
+        "title": "加入 target client",
+        "description": "選擇要加入 target 清單的 client。若選擇全部 client，會清空 target 設定。",
         "data": {
           "target_client_id": "目標 client"
         }

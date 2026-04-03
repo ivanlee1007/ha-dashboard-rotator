@@ -135,7 +135,7 @@
         "description": "Manage target selection and aliases.\n\nKnown clients:\n{clients_summary}",
         "menu_options": {
           "view_client_details_select": "View client details",
-          "edit_target_client": "Choose target client",
+          "edit_target_client": "Add target client",
           "clear_target_client": "Clear target client",
           "edit_client_alias_select": "Edit client alias",
           "init": "Back to main menu",
@@ -154,16 +154,22 @@
         "title": "Client details",
         "description": "Client: {client_label}\n\nStatus: {status}\nPresence: {presence}\nLast seen: {last_seen}\nPage title: {page_title}\nCurrent view: {current_view}\nNext view: {next_view}\nPage visible: {page_visible}\nOn managed dashboard: {on_managed_dashboard}\nLast update: {updated_at}\nIs target client: {is_target}",
         "menu_options": {
-          "set_selected_target_client": "Set as target client",
+          "add_selected_target_client": "Add to targets",
+          "remove_selected_target_client": "Remove from targets",
           "edit_client_alias": "Edit alias",
           "clear_selected_client_alias": "Clear alias",
           "clients": "Back to client management"
         },
         "data": {}
       },
-      "set_selected_target_client": {
+      "add_selected_target_client": {
         "title": "Target updated",
-        "description": "This client is now the target client.",
+        "description": "This client has been added to the target list.",
+        "data": {}
+      },
+      "remove_selected_target_client": {
+        "title": "Target updated",
+        "description": "This client has been removed from the target list.",
         "data": {}
       },
       "clear_target_client": {
@@ -172,8 +178,8 @@
         "data": {}
       },
       "edit_target_client": {
-        "title": "Choose target client",
-        "description": "Select which client should receive automatic rotation. Choose all clients to disable targeting.",
+        "title": "Add target client",
+        "description": "Select a client to add to the target list. Choose all clients to clear targeting.",
         "data": {
           "target_client_id": "Target client"
         }

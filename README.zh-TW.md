@@ -12,7 +12,7 @@
 
 ## 1. 功能總覽
 
-目前版本：`0.1.18`
+目前版本：`0.1.19`
 
 ### 目前已支援
 
@@ -395,6 +395,7 @@ enabled_entity: switch.uninus_dashboard_rotator_test_enabled
 - 目前這個瀏覽器自己的 client ID（方便對照是哪一台 kiosk / 哪個分頁）
 - 可一鍵把「目前這個瀏覽器」加入 target，也可直接清除全部 target
 - 支援 multi-target（同時指定多個 target client）
+- options flow 的 client management 現在可逐一加入 / 移除 target client
 - target client
 - active client
 - active client alias
