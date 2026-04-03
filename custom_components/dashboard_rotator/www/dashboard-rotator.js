@@ -15,6 +15,9 @@ const I18N = {
     removeFromTargets: "Remove from targets",
     alreadyTarget: "Already targeted",
     clearTargets: "Clear targets",
+    targetBadge: "Target",
+    currentBadge: "This browser",
+    activeBadge: "Active",
     switchEntityNotResolved: "switch entity not resolved",
     targetClient: "Target client",
     allClients: "all clients",
@@ -66,6 +69,9 @@ const I18N = {
     removeFromTargets: "移出 target",
     alreadyTarget: "已在 target 內",
     clearTargets: "清除 target",
+    targetBadge: "Target",
+    currentBadge: "這個瀏覽器",
+    activeBadge: "作用中",
     switchEntityNotResolved: "無法解析對應的 switch entity",
     targetClient: "目標 client",
     allClients: "全部 client",
@@ -630,11 +636,17 @@ class DashboardRotatorStatusCard extends HTMLElement {
         button { border: 1px solid var(--divider-color); background: var(--card-background-color); color: var(--primary-text-color); border-radius: 8px; padding: 8px 10px; cursor: pointer; }
         .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top: 12px; }
         .chip { border: 1px solid var(--divider-color); border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+        .role-badges { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+        .role-badge { border-radius:999px; padding: 2px 8px; font-size:11px; font-weight:600; line-height:1.4; border:1px solid var(--divider-color); }
+        .role-badge.target { border-color: var(--warning-color, #ff9800); color: var(--warning-color, #ff9800); }
+        .role-badge.current { border-color: var(--info-color, #2196f3); color: var(--info-color, #2196f3); }
+        .role-badge.active { border-color: var(--success-color, #4caf50); color: var(--success-color, #4caf50); }
         .muted { color: var(--secondary-text-color); }
         .client-list { margin-top: 12px; display:grid; gap:8px; }
         .client-item { border: 1px solid var(--divider-color); border-radius: 10px; padding: 10px; }
         .client-item.active { border-color: var(--primary-color); }
         .client-head { display:flex; justify-content:space-between; gap:8px; font-weight:600; margin-bottom: 4px; }
+        .client-title { min-width:0; }
         .tiny { font-size: 12px; color: var(--secondary-text-color); }
         .switch-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin: 6px 0; }
         .switch-meta { display:flex; flex-direction:column; gap:2px; }
@@ -658,7 +670,8 @@ class DashboardRotatorStatusCard extends HTMLElement {
             </div>
             <ha-switch data-action="toggle_enabled" data-entity-id="${enabledEntityId}" ${enabledKnown && enabledState === 'on' ? 'checked' : ''} ${enabledEntityId ? '' : 'disabled'}></ha-switch>
           </div>
-          <div class="row"><strong>${this.t("targetClient")}</strong><span>${targetClientIds.length ? targetClientIds.join(", ") : this.t("allClients")}</span></div>
+          <div class="row"><strong>${this.t("targetClient")}</strong><span>${targetClientIds.length ? '' : this.t("allClients")}</span></div>
+          ${targetClientIds.length ? `<div class="chips" style="margin-top:6px;">${targetClientIds.map((clientId) => `<span class="chip">🎯 ${clientId}</span>`).join('')}</div>` : ''}
           ${this._config?.target_client_id ? `<div class="row"><strong>${this.t("cardCommandTarget")}</strong><span>${this._config.target_client_id}</span></div>` : ''}
           <div class="row"><strong>${this.t("activeClient")}</strong><span>${activeClientAlias ? `${activeClientAlias} (${activeClientId || '-'})` : (activeClientId || "-")}</span></div>
           <div class="row"><strong>${this.t("clients")}</strong><span>${clients.length}</span></div>
@@ -679,7 +692,14 @@ class DashboardRotatorStatusCard extends HTMLElement {
             ${clients.map((item) => `
               <div class="client-item ${item.client_id === activeClientId ? 'active' : ''}">
                 <div class="client-head">
-                  <span>${item.display_name || item.client_id || '-'}${targetClientIds.includes(item.client_id) ? ' 🎯' : ''}${item.client_id === currentBrowserClientId ? ' 🖥️' : ''}</span>
+                  <div class="client-title">
+                    <div>${item.display_name || item.client_id || '-'}</div>
+                    <div class="role-badges">
+                      ${targetClientIds.includes(item.client_id) ? `<span class="role-badge target">🎯 ${this.t("targetBadge")}</span>` : ''}
+                      ${item.client_id === currentBrowserClientId ? `<span class="role-badge current">🖥️ ${this.t("currentBadge")}</span>` : ''}
+                      ${item.client_id === activeClientId ? `<span class="role-badge active">✅ ${this.t("activeBadge")}</span>` : ''}
+                    </div>
+                  </div>
                   <span>${this.formatStatus(item.status)}</span>
                 </div>
                 <div class="tiny">${this.t("id")}: ${item.client_id || '-'}</div>

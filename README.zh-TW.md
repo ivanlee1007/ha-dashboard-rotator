@@ -12,7 +12,7 @@
 
 ## 1. 功能總覽
 
-目前版本：`0.1.22`
+目前版本：`0.1.23`
 
 ### 目前已支援
 
@@ -398,6 +398,7 @@ enabled_entity: switch.uninus_dashboard_rotator_test_enabled
 - 支援 multi-target（同時指定多個 target client）
 - General settings 已明確標示那格只是「單一 target 覆蓋」，真正 multi-target 編輯集中在 Client 管理
 - status card 的 client 小卡已改成穩定排序，不再用 heartbeat `updated_at` 一直上下跳動
+- status card 現在用 badge / chip 顯示 target、這個瀏覽器、active，不必再靠位置或字尾 emoji 猜角色
 - options flow 的 client management 現在可逐一加入 / 移除 target client
 - target client
 - active client
