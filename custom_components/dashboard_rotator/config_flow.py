@@ -269,7 +269,7 @@ def _build_schema(
                     unit_of_measurement="s",
                 )
             ),
-            vol.Required(
+            vol.Optional(
                 CONF_TARGET_CLIENT_ID,
                 default=defaults.get(CONF_TARGET_CLIENT_ID, DEFAULT_TARGET_CLIENT_ID),
             ): target_selector,
@@ -342,7 +342,7 @@ def _build_general_schema(
                     unit_of_measurement="s",
                 )
             ),
-            vol.Required(
+            vol.Optional(
                 CONF_TARGET_CLIENT_ID,
                 default=defaults.get(CONF_TARGET_CLIENT_ID, DEFAULT_TARGET_CLIENT_ID),
             ): target_selector,
@@ -500,6 +500,10 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
         config = self._ensure_working()
 
         if user_input is not None:
+            user_input = {
+                **user_input,
+                CONF_TARGET_CLIENT_ID: str(user_input.get(CONF_TARGET_CLIENT_ID, "") or "").strip(),
+            }
             try:
                 self._set_working(self._build_candidate(user_input))
             except (InvalidViewsConfig, InvalidAliasesConfig):
@@ -898,6 +902,10 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
         config = self._ensure_working()
 
         if user_input is not None:
+            user_input = {
+                **user_input,
+                CONF_TARGET_CLIENT_ID: str(user_input.get(CONF_TARGET_CLIENT_ID, "") or "").strip(),
+            }
             try:
                 self._set_working(self._build_candidate(user_input))
             except (InvalidViewsConfig, InvalidAliasesConfig):
