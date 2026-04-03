@@ -3,6 +3,109 @@ const RUNTIME_ROLE = "runtime";
 const REPORT_INTERVAL_MS = 5000;
 const TICK_MS = 1000;
 
+const I18N = {
+  en: {
+    header: "Dashboard Rotator",
+    runtimeNotFound: "Dashboard Rotator runtime sensor not found.",
+    status: "Status",
+    dashboard: "Dashboard",
+    rotatorEnabled: "Rotator enabled",
+    switchEntityNotResolved: "switch entity not resolved",
+    targetClient: "Target client",
+    allClients: "all clients",
+    cardCommandTarget: "Card command target",
+    activeClient: "Active client",
+    clients: "Clients",
+    current: "Current",
+    next: "Next",
+    remaining: "Remaining",
+    visible: "Visible",
+    pause: "Pause",
+    resume: "Resume",
+    prev: "Prev",
+    nextButton: "Next",
+    lastUpdate: "Last update",
+    setAlias: "Set alias",
+    aliasPrompt: "Alias for {clientId}",
+    id: "id",
+    title: "title",
+    updated: "updated",
+    currentLabel: "current",
+    nextLabel: "next",
+    remainingLabel: "remaining",
+    visibleLabel: "visible",
+    trueText: "Yes",
+    falseText: "No",
+    statusLabels: {
+      disabled: "Disabled",
+      running: "Running",
+      navigating: "Navigating",
+      interaction_pause: "Paused by interaction",
+      manual_pause: "Paused manually",
+      waiting_start: "Waiting to start",
+      not_targeted: "Not targeted",
+      hidden: "Hidden",
+      target_unavailable: "Target unavailable",
+      idle: "Idle",
+      no_views: "No views"
+    }
+  },
+  zhHant: {
+    header: "儀表板輪播",
+    runtimeNotFound: "找不到 Dashboard Rotator runtime 感測器。",
+    status: "狀態",
+    dashboard: "儀表板",
+    rotatorEnabled: "輪播啟用",
+    switchEntityNotResolved: "無法解析對應的 switch entity",
+    targetClient: "目標 client",
+    allClients: "全部 client",
+    cardCommandTarget: "卡片命令目標",
+    activeClient: "目前作用 client",
+    clients: "Client 數",
+    current: "目前頁面",
+    next: "下一頁",
+    remaining: "剩餘秒數",
+    visible: "可見",
+    pause: "暫停",
+    resume: "恢復",
+    prev: "上一頁",
+    nextButton: "下一頁",
+    lastUpdate: "最後更新",
+    setAlias: "設定別名",
+    aliasPrompt: "為 {clientId} 設定別名",
+    id: "ID",
+    title: "頁面標題",
+    updated: "更新時間",
+    currentLabel: "目前",
+    nextLabel: "下一個",
+    remainingLabel: "剩餘",
+    visibleLabel: "可見",
+    trueText: "是",
+    falseText: "否",
+    statusLabels: {
+      disabled: "已停用",
+      running: "執行中",
+      navigating: "切換中",
+      interaction_pause: "互動暫停",
+      manual_pause: "手動暫停",
+      waiting_start: "等待開始",
+      not_targeted: "非目標 client",
+      hidden: "頁面隱藏",
+      target_unavailable: "目標 client 未連線",
+      idle: "待命",
+      no_views: "沒有可用頁面"
+    }
+  }
+};
+
+const getUiStrings = () => {
+  const lang = String(document.documentElement?.lang || navigator.language || "").toLowerCase();
+  if (lang.startsWith("zh-hant") || lang.startsWith("zh-tw") || lang.startsWith("zh-hk") || lang.startsWith("zh-mo") || lang === "zh") {
+    return I18N.zhHant;
+  }
+  return I18N.en;
+};
+
 const normalizePath = (value) => {
   const raw = String(value || "").split("?", 1)[0].split("#", 1)[0].trim();
   if (!raw) return "";
@@ -373,8 +476,23 @@ class DashboardRotatorStatusCard extends HTMLElement {
     return "";
   }
 
+  t(key) {
+    return (this._strings || I18N.en)[key] || I18N.en[key] || key;
+  }
+
+  formatBool(value) {
+    if (value === null || value === undefined || value === "") return "-";
+    return value ? this.t("trueText") : this.t("falseText");
+  }
+
+  formatStatus(value) {
+    if (!value) return "-";
+    return this._strings?.statusLabels?.[value] || I18N.en.statusLabels?.[value] || value;
+  }
+
   setConfig(config) {
     this._config = config || {};
+    this._strings = getUiStrings();
     if (!this.shadowRoot) {
       this.attachShadow({ mode: "open" });
       this.shadowRoot.addEventListener("click", (ev) => {
@@ -387,7 +505,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
         if (action === "alias" && el.dataset.clientId) {
           const clientId = el.dataset.clientId;
           const currentAlias = el.dataset.alias || "";
-          const alias = window.prompt(`Alias for ${clientId}`, currentAlias);
+          const alias = window.prompt(this.t("aliasPrompt").replace("{clientId}", clientId), currentAlias);
           if (alias === null) return;
           this._hass.callService(DOMAIN, "set_client_alias", { client_id: clientId, alias });
           return;
@@ -410,6 +528,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    this._strings = getUiStrings();
     this.render();
   }
 
@@ -433,7 +552,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
     if (!this.shadowRoot) return;
     const runtime = this.findRuntime();
     if (!runtime) {
-      this.shadowRoot.innerHTML = `<ha-card><div class="pad">Dashboard Rotator runtime sensor not found.</div></ha-card>`;
+      this.shadowRoot.innerHTML = `<ha-card><div class="pad">${this.t("runtimeNotFound")}</div></ha-card>`;
       return;
     }
 
@@ -471,30 +590,30 @@ class DashboardRotatorStatusCard extends HTMLElement {
         .switch-subtitle { font-size:12px; color: var(--secondary-text-color); }
         ha-switch[disabled] { opacity: 0.5; }
       </style>
-      <ha-card header="Dashboard Rotator">
+      <ha-card header="${this.t("header")}">
         <div class="pad">
-          <div class="row"><strong>Status</strong><span>${runtime.state}</span></div>
-          <div class="row"><strong>Dashboard</strong><span>${profile.dashboard_path || "-"}</span></div>
+          <div class="row"><strong>${this.t("status")}</strong><span>${this.formatStatus(runtime.state)}</span></div>
+          <div class="row"><strong>${this.t("dashboard")}</strong><span>${profile.dashboard_path || "-"}</span></div>
           <div class="switch-row">
             <div class="switch-meta">
-              <span class="switch-title">Rotator enabled</span>
-              <span class="switch-subtitle">${enabledEntityId || 'switch entity not resolved'}</span>
+              <span class="switch-title">${this.t("rotatorEnabled")}</span>
+              <span class="switch-subtitle">${enabledEntityId || this.t("switchEntityNotResolved")}</span>
             </div>
             <ha-switch data-action="toggle_enabled" data-entity-id="${enabledEntityId}" ${enabledKnown && enabledState === 'on' ? 'checked' : ''} ${enabledEntityId ? '' : 'disabled'}></ha-switch>
           </div>
-          <div class="row"><strong>Target client</strong><span>${targetClientId || "all clients"}</span></div>
-          ${this._config?.target_client_id ? `<div class="row"><strong>Card command target</strong><span>${this._config.target_client_id}</span></div>` : ''}
-          <div class="row"><strong>Active client</strong><span>${activeClientAlias ? `${activeClientAlias} (${activeClientId || '-'})` : (activeClientId || "-")}</span></div>
-          <div class="row"><strong>Clients</strong><span>${clients.length}</span></div>
-          <div class="row"><strong>Current</strong><span>${client.current_view || "-"}</span></div>
-          <div class="row"><strong>Next</strong><span>${client.next_view || "-"}</span></div>
-          <div class="row"><strong>Remaining</strong><span>${client.remaining_seconds ?? "-"}</span></div>
-          <div class="row"><strong>Visible</strong><span>${client.page_visible ?? "-"}</span></div>
+          <div class="row"><strong>${this.t("targetClient")}</strong><span>${targetClientId || this.t("allClients")}</span></div>
+          ${this._config?.target_client_id ? `<div class="row"><strong>${this.t("cardCommandTarget")}</strong><span>${this._config.target_client_id}</span></div>` : ''}
+          <div class="row"><strong>${this.t("activeClient")}</strong><span>${activeClientAlias ? `${activeClientAlias} (${activeClientId || '-'})` : (activeClientId || "-")}</span></div>
+          <div class="row"><strong>${this.t("clients")}</strong><span>${clients.length}</span></div>
+          <div class="row"><strong>${this.t("current")}</strong><span>${client.current_view || "-"}</span></div>
+          <div class="row"><strong>${this.t("next")}</strong><span>${client.next_view || "-"}</span></div>
+          <div class="row"><strong>${this.t("remaining")}</strong><span>${client.remaining_seconds ?? "-"}</span></div>
+          <div class="row"><strong>${this.t("visible")}</strong><span>${this.formatBool(client.page_visible)}</span></div>
           <div class="buttons">
-            <button data-action="pause">Pause</button>
-            <button data-action="resume">Resume</button>
-            <button data-action="previous_view">Prev</button>
-            <button data-action="next_view">Next</button>
+            <button data-action="pause">${this.t("pause")}</button>
+            <button data-action="resume">${this.t("resume")}</button>
+            <button data-action="previous_view">${this.t("prev")}</button>
+            <button data-action="next_view">${this.t("nextButton")}</button>
           </div>
           <div class="chips">
             ${views.map((view) => `<button class="chip" data-action="jump" data-path="${view.path}">${view.title || view.path}</button>`).join("")}
@@ -504,18 +623,18 @@ class DashboardRotatorStatusCard extends HTMLElement {
               <div class="client-item ${item.client_id === activeClientId ? 'active' : ''}">
                 <div class="client-head">
                   <span>${item.display_name || item.client_id || '-'}${item.client_id === targetClientId ? ' 🎯' : ''}</span>
-                  <span>${item.status || '-'}</span>
+                  <span>${this.formatStatus(item.status)}</span>
                 </div>
-                <div class="tiny">id: ${item.client_id || '-'}</div>
-                <div class="tiny">current: ${item.current_view || '-'} | next: ${item.next_view || '-'}</div>
-                <div class="tiny">remaining: ${item.remaining_seconds ?? '-'} | visible: ${item.page_visible ?? '-'}</div>
-                <div class="tiny">title: ${item.page_title || '-'}</div>
-                <div class="tiny">updated: ${item.updated_at || '-'}</div>
-                <div style="margin-top:8px;"><button data-action="alias" data-client-id="${item.client_id || ''}" data-alias="${item.client_alias || ''}">Set alias</button></div>
+                <div class="tiny">${this.t("id")}: ${item.client_id || '-'}</div>
+                <div class="tiny">${this.t("currentLabel")}: ${item.current_view || '-'} | ${this.t("nextLabel")}: ${item.next_view || '-'}</div>
+                <div class="tiny">${this.t("remainingLabel")}: ${item.remaining_seconds ?? '-'} | ${this.t("visibleLabel")}: ${this.formatBool(item.page_visible)}</div>
+                <div class="tiny">${this.t("title")}: ${item.page_title || '-'}</div>
+                <div class="tiny">${this.t("updated")}: ${item.updated_at || '-'}</div>
+                <div style="margin-top:8px;"><button data-action="alias" data-client-id="${item.client_id || ''}" data-alias="${item.client_alias || ''}">${this.t("setAlias")}</button></div>
               </div>
             `).join('')}
           </div>
-          <div class="muted" style="margin-top:12px;">Last update: ${client.updated_at || "-"}</div>
+          <div class="muted" style="margin-top:12px;">${this.t("lastUpdate")}: ${client.updated_at || "-"}</div>
         </div>
       </ha-card>
     `;

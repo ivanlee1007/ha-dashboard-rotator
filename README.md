@@ -2,7 +2,7 @@
 
 Home Assistant custom integration that rotates Lovelace dashboard views on a timed interval.
 
-Current version: `0.1.12`
+Current version: `0.1.13`
 
 Chinese manual / 中文使用說明：[`README.zh-TW.md`](./README.zh-TW.md)
 
@@ -14,6 +14,8 @@ Chinese manual / 中文使用說明：[`README.zh-TW.md`](./README.zh-TW.md)
 - Pauses when the page is hidden
 - Pauses temporarily after manual interaction
 - Exposes HA entities, services, and an optional status card
+- Includes built-in Traditional Chinese (`zh-Hant`) translations for config/options flows
+- Status card auto-localizes common labels when HA is using Traditional Chinese
 
 ## Current MVP scope
 

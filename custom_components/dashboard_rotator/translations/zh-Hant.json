@@ -1,0 +1,249 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dashboard Rotator",
+        "description": "設定一組儀表板輪播設定檔。\n\n目標 client：{target_client}\n\n目前頁面：\n{views_summary}",
+        "menu_options": {
+          "general": "一般設定",
+          "views": "頁面編輯器",
+          "advanced": "進階 JSON",
+          "save": "建立設定"
+        },
+        "data": {}
+      },
+      "general": {
+        "title": "一般設定",
+        "description": "編輯設定檔行為與 client 目標。",
+        "data": {
+          "name": "設定檔名稱",
+          "dashboard_path": "儀表板基底路徑",
+          "enabled": "啟用",
+          "default_interval": "預設輪播間隔（秒）",
+          "pause_on_interaction": "互動後暫停（秒）",
+          "only_when_visible": "只有頁面可見時才輪播",
+          "start_delay": "啟動延遲（秒）",
+          "target_client_id": "目標 client ID（留白 = 全部 client）"
+        }
+      },
+      "views": {
+        "title": "頁面編輯器",
+        "description": "在這裡管理輪播順序。\n\n目前頁面：\n{views_summary}",
+        "menu_options": {
+          "add_view": "新增頁面",
+          "edit_view_select": "編輯頁面",
+          "delete_view_select": "刪除頁面",
+          "user": "回到主選單",
+          "save": "建立設定"
+        },
+        "data": {}
+      },
+      "add_view": {
+        "title": "新增頁面",
+        "description": "建立新的頁面項目，並選擇它在輪播中的位置。",
+        "data": {
+          "path": "頁面路徑",
+          "title": "頁面標題",
+          "seconds": "頁面停留時間（秒）",
+          "enabled": "啟用",
+          "position": "位置"
+        }
+      },
+      "edit_view_select": {
+        "title": "選擇要編輯的頁面",
+        "description": "選擇你要編輯哪個頁面。",
+        "data": {
+          "selected_view": "頁面"
+        }
+      },
+      "edit_view": {
+        "title": "編輯頁面",
+        "description": "更新選取的頁面，並可選擇移到新的位置。",
+        "data": {
+          "path": "頁面路徑",
+          "title": "頁面標題",
+          "seconds": "頁面停留時間（秒）",
+          "enabled": "啟用",
+          "position": "位置"
+        }
+      },
+      "delete_view_select": {
+        "title": "刪除頁面",
+        "description": "選擇要從輪播中移除的頁面。",
+        "data": {
+          "selected_view": "頁面"
+        }
+      },
+      "advanced": {
+        "title": "進階 JSON",
+        "description": "提供 aliases 與 views 的原始 JSON 備援編輯。",
+        "data": {
+          "client_aliases_json": "Client aliases JSON",
+          "views_json": "Views JSON"
+        }
+      }
+    },
+    "error": {
+      "invalid_views": "Views 或 client aliases JSON 格式無效，請檢查語法與路徑前綴。"
+    },
+    "abort": {
+      "single_instance_allowed": "MVP 模式下只支援一個 Dashboard Rotator 設定項目。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Dashboard Rotator 選項",
+        "description": "選擇要編輯的項目。\n\n目標 client：{target_client}\n\n目前頁面：\n{views_summary}",
+        "menu_options": {
+          "general": "一般設定",
+          "views": "頁面編輯器",
+          "clients": "Client 管理",
+          "advanced": "進階 JSON",
+          "save": "儲存變更"
+        },
+        "data": {}
+      },
+      "general": {
+        "title": "一般設定",
+        "description": "編輯設定檔行為與 client 目標。",
+        "data": {
+          "name": "設定檔名稱",
+          "dashboard_path": "儀表板基底路徑",
+          "enabled": "啟用",
+          "default_interval": "預設輪播間隔（秒）",
+          "pause_on_interaction": "互動後暫停（秒）",
+          "only_when_visible": "只有頁面可見時才輪播",
+          "start_delay": "啟動延遲（秒）",
+          "target_client_id": "目標 client ID（留白 = 全部 client）"
+        }
+      },
+      "views": {
+        "title": "頁面編輯器",
+        "description": "在這裡管理輪播順序。\n\n目前頁面：\n{views_summary}",
+        "menu_options": {
+          "add_view": "新增頁面",
+          "edit_view_select": "編輯頁面",
+          "delete_view_select": "刪除頁面",
+          "init": "回到主選單",
+          "save": "儲存變更"
+        },
+        "data": {}
+      },
+      "clients": {
+        "title": "Client 管理",
+        "description": "管理目標 client 與別名。\n\n已知 client：\n{clients_summary}",
+        "menu_options": {
+          "view_client_details_select": "查看 client 詳細資訊",
+          "edit_target_client": "選擇目標 client",
+          "clear_target_client": "清除目標 client",
+          "edit_client_alias_select": "編輯 client 別名",
+          "init": "回到主選單",
+          "save": "儲存變更"
+        },
+        "data": {}
+      },
+      "view_client_details_select": {
+        "title": "選擇 client",
+        "description": "選擇要查看哪個 client 的詳細資訊。",
+        "data": {
+          "selected_client": "Client"
+        }
+      },
+      "view_client_details": {
+        "title": "Client 詳細資訊",
+        "description": "Client：{client_label}\n\n狀態：{status}\nPresence：{presence}\n最後出現：{last_seen}\n頁面標題：{page_title}\n目前頁面：{current_view}\n下一頁：{next_view}\n頁面可見：{page_visible}\n在管理中的儀表板上：{on_managed_dashboard}\n最後更新：{updated_at}\n是否為目標 client：{is_target}",
+        "menu_options": {
+          "set_selected_target_client": "設成目標 client",
+          "edit_client_alias": "編輯別名",
+          "clear_selected_client_alias": "清除別名",
+          "clients": "回到 Client 管理"
+        },
+        "data": {}
+      },
+      "set_selected_target_client": {
+        "title": "目標已更新",
+        "description": "這個 client 現在已被設為目標 client。",
+        "data": {}
+      },
+      "clear_target_client": {
+        "title": "目標已清除",
+        "description": "已清除目標設定，所有 client 重新都可參與輪播。",
+        "data": {}
+      },
+      "edit_target_client": {
+        "title": "選擇目標 client",
+        "description": "選擇哪個 client 應該接收自動輪播。選擇全部 client 可停用 target 限制。",
+        "data": {
+          "target_client_id": "目標 client"
+        }
+      },
+      "edit_client_alias_select": {
+        "title": "選擇 client",
+        "description": "選擇要編輯哪個 client 的別名。",
+        "data": {
+          "selected_client": "Client"
+        }
+      },
+      "edit_client_alias": {
+        "title": "編輯 client 別名",
+        "description": "為 {client_label} 設定好記的別名。留白可清除。",
+        "data": {
+          "alias": "別名"
+        }
+      },
+      "clear_selected_client_alias": {
+        "title": "別名已清除",
+        "description": "已移除選取 client 的別名。",
+        "data": {}
+      },
+      "add_view": {
+        "title": "新增頁面",
+        "description": "建立新的頁面項目，並選擇它在輪播中的位置。",
+        "data": {
+          "path": "頁面路徑",
+          "title": "頁面標題",
+          "seconds": "頁面停留時間（秒）",
+          "enabled": "啟用",
+          "position": "位置"
+        }
+      },
+      "edit_view_select": {
+        "title": "選擇要編輯的頁面",
+        "description": "選擇你要編輯哪個頁面。",
+        "data": {
+          "selected_view": "頁面"
+        }
+      },
+      "edit_view": {
+        "title": "編輯頁面",
+        "description": "更新選取的頁面，並可選擇移到新的位置。",
+        "data": {
+          "path": "頁面路徑",
+          "title": "頁面標題",
+          "seconds": "頁面停留時間（秒）",
+          "enabled": "啟用",
+          "position": "位置"
+        }
+      },
+      "delete_view_select": {
+        "title": "刪除頁面",
+        "description": "選擇要從輪播中移除的頁面。",
+        "data": {
+          "selected_view": "頁面"
+        }
+      },
+      "advanced": {
+        "title": "進階 JSON",
+        "description": "提供 aliases 與 views 的原始 JSON 備援編輯。",
+        "data": {
+          "client_aliases_json": "Client aliases JSON",
+          "views_json": "Views JSON"
+        }
+      }
+    },
+    "error": {
+      "invalid_views": "Views 或 client aliases JSON 格式無效，請檢查語法與路徑前綴。"
+    }
+  }
+}

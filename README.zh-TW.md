@@ -12,7 +12,7 @@
 
 ## 1. 功能總覽
 
-目前版本：`0.1.12`
+目前版本：`0.1.13`
 
 ### 目前已支援
 
@@ -27,6 +27,8 @@
 - 提供 Client Details 檢視
 - 顯示 client 的 `presence` 與 `last seen`
 - 提供狀態卡 `custom:dashboard-rotator-status`
+- 內建繁體中文（`zh-Hant`）設定/選項流程翻譯
+- 狀態卡會依 HA 語系自動切成繁中常用標籤
 
 ### 適合的場景
 

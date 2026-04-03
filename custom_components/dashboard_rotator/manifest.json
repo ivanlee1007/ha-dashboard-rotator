@@ -1,7 +1,7 @@
 {
   "domain": "dashboard_rotator",
   "name": "Dashboard Rotator",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "config_flow": true,
   "documentation": "https://github.com/ivanlee1007/ha-dashboard-rotator",
   "issue_tracker": "https://github.com/ivanlee1007/ha-dashboard-rotator/issues",
