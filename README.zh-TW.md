@@ -12,7 +12,7 @@
 
 ## 1. 功能總覽
 
-目前版本：`0.1.10`
+目前版本：`0.1.12`
 
 ### 目前已支援
 
@@ -376,8 +376,20 @@ type: custom:dashboard-rotator-status
 entity: sensor.dashboard_rotator_runtime
 ```
 
+如果你想明確指定控制哪顆啟用開關，也可以額外給：
+
+```yaml
+type: custom:dashboard-rotator-status
+entity: sensor.uninus_dashboard_rotator_test_runtime
+enabled_entity: switch.uninus_dashboard_rotator_test_enabled
+```
+
+> 若未指定 `enabled_entity`，卡片會自動從 `sensor.xxx_runtime` 推導成 `switch.xxx_enabled`。
+
 ### 這張卡目前會顯示
 
+- rotator 啟用狀態
+- 內嵌 HA 風格開關（可直接 on/off）
 - target client
 - active client
 - active client alias

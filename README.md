@@ -2,7 +2,7 @@
 
 Home Assistant custom integration that rotates Lovelace dashboard views on a timed interval.
 
-Current version: `0.1.11`
+Current version: `0.1.12`
 
 Chinese manual / 中文使用說明：[`README.zh-TW.md`](./README.zh-TW.md)
 
@@ -154,10 +154,18 @@ type: custom:dashboard-rotator-status
 entity: sensor.dashboard_rotator_runtime
 ```
 
+Optional explicit enabled switch override:
+
+```yaml
+type: custom:dashboard-rotator-status
+entity: sensor.uninus_dashboard_rotator_test_runtime
+enabled_entity: switch.uninus_dashboard_rotator_test_enabled
+```
+
 The status card shows:
 
 - rotator enabled/disabled state
-- inline rotator toggle button
+- inline HA-style rotator switch toggle
 - target client
 - active client / alias
 - all recent clients

@@ -381,6 +381,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
         const el = ev.target?.closest?.("[data-action]") || ev.target;
         const action = el?.dataset?.action;
         if (!action || !this._hass) return;
+        if (action === "toggle_enabled") return;
         const targetClientId = String(this._config?.target_client_id || "").trim();
         const data = targetClientId ? { target_client_id: targetClientId } : {};
         if (action === "alias" && el.dataset.clientId) {
@@ -391,18 +392,18 @@ class DashboardRotatorStatusCard extends HTMLElement {
           this._hass.callService(DOMAIN, "set_client_alias", { client_id: clientId, alias });
           return;
         }
-        if (action === "toggle_enabled" && el.dataset.entityId) {
-          const entityId = el.dataset.entityId;
-          const state = this._hass.states?.[entityId]?.state;
-          const service = state === "on" ? "turn_off" : "turn_on";
-          this._hass.callService("switch", service, { entity_id: entityId });
-          return;
-        }
         if (action === "jump" && el.dataset.path) {
           this._hass.callService(DOMAIN, "jump_to_view", { ...data, path: el.dataset.path });
           return;
         }
         this._hass.callService(DOMAIN, action, data);
+      });
+      this.shadowRoot.addEventListener("change", (ev) => {
+        const el = ev.target?.closest?.("[data-action='toggle_enabled']") || ev.target;
+        if (!this._hass || el?.dataset?.action !== "toggle_enabled" || !el.dataset.entityId) return;
+        const entityId = el.dataset.entityId;
+        const checked = !!el.checked;
+        this._hass.callService("switch", checked ? "turn_on" : "turn_off", { entity_id: entityId });
       });
     }
   }
@@ -464,17 +465,23 @@ class DashboardRotatorStatusCard extends HTMLElement {
         .client-item.active { border-color: var(--primary-color); }
         .client-head { display:flex; justify-content:space-between; gap:8px; font-weight:600; margin-bottom: 4px; }
         .tiny { font-size: 12px; color: var(--secondary-text-color); }
-        .toggle-btn { min-width: 88px; font-weight: 600; }
-        .toggle-btn.on { border-color: var(--success-color, #2e7d32); color: var(--success-color, #2e7d32); }
-        .toggle-btn.off { border-color: var(--error-color, #c62828); color: var(--error-color, #c62828); }
-        .toggle-btn.unknown { opacity: 0.65; }
+        .switch-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin: 6px 0; }
+        .switch-meta { display:flex; flex-direction:column; gap:2px; }
+        .switch-title { font-weight:600; }
+        .switch-subtitle { font-size:12px; color: var(--secondary-text-color); }
+        ha-switch[disabled] { opacity: 0.5; }
       </style>
       <ha-card header="Dashboard Rotator">
         <div class="pad">
           <div class="row"><strong>Status</strong><span>${runtime.state}</span></div>
           <div class="row"><strong>Dashboard</strong><span>${profile.dashboard_path || "-"}</span></div>
-          <div class="row"><strong>Rotator enabled</strong><span>${enabledKnown ? enabledState : (profile.enabled ? 'on (profile)' : 'off (profile)')}</span></div>
-          ${enabledEntityId ? `<div class="buttons"><button class="toggle-btn ${enabledKnown ? enabledState : 'unknown'}" data-action="toggle_enabled" data-entity-id="${enabledEntityId}">${enabledKnown ? (enabledState === 'on' ? 'Turn off' : 'Turn on') : 'Toggle rotator'}</button></div>` : ''}
+          <div class="switch-row">
+            <div class="switch-meta">
+              <span class="switch-title">Rotator enabled</span>
+              <span class="switch-subtitle">${enabledEntityId || 'switch entity not resolved'}</span>
+            </div>
+            <ha-switch data-action="toggle_enabled" data-entity-id="${enabledEntityId}" ${enabledKnown && enabledState === 'on' ? 'checked' : ''} ${enabledEntityId ? '' : 'disabled'}></ha-switch>
+          </div>
           <div class="row"><strong>Target client</strong><span>${targetClientId || "all clients"}</span></div>
           ${this._config?.target_client_id ? `<div class="row"><strong>Card command target</strong><span>${this._config.target_client_id}</span></div>` : ''}
           <div class="row"><strong>Active client</strong><span>${activeClientAlias ? `${activeClientAlias} (${activeClientId || '-'})` : (activeClientId || "-")}</span></div>
