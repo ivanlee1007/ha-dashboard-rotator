@@ -28,7 +28,8 @@ That profile contains:
 - default interval
 - pause-after-interaction seconds
 - start delay
-- target client picker
+- single-target override in General settings
+- multi-target client management UI
 - client management UI
 - client details view
 - client aliases JSON fallback
@@ -65,7 +66,16 @@ Then add the integration from **Settings → Devices & Services**.
 
 ## Configuration
 
-The profile uses a JSON array for views.
+The integration is configured primarily through the GUI setup/options flow.
+
+Use:
+
+- **General settings** for dashboard path, timing, visibility, and the optional **single-target override**
+- **Client management** for real multi-target operations, alias editing, clear-target actions, and client details
+- **Views editor** for add/edit/delete/reorder of managed views
+- **Advanced JSON** only as a fallback for direct JSON editing
+
+Under the hood the profile still stores a JSON array for views.
 
 Example:
 
@@ -97,7 +107,8 @@ Rules:
 
 Optional profile fields:
 
-- `target_client_id`: if set, only that specific browser client/tab will auto-rotate
+- `target_client_id`: optional **single-target override** field used by General settings
+- `target_client_ids` / `target_client_ids_json`: multi-target list used by Client management and the status card
 - `client_aliases_json`: optional `{ client_id: alias }` map for friendly labels
 
 You can discover active client IDs from the runtime sensor attributes or the optional status card.
@@ -121,6 +132,7 @@ You can discover active client IDs from the runtime sensor attributes or the opt
 - `dashboard_rotator.previous_view`
 - `dashboard_rotator.jump_to_view`
 - `dashboard_rotator.set_client_alias`
+- `dashboard_rotator.set_target_client`
 
 All command services support an optional `target_client_id` field.
 
@@ -131,6 +143,29 @@ service: dashboard_rotator.pause
 data:
   target_client_id: dr-abc12345
 ```
+
+Set / append / remove target clients:
+
+```yaml
+service: dashboard_rotator.set_target_client
+data:
+  target_client_id: dr-abc12345
+  append: true
+```
+
+```yaml
+service: dashboard_rotator.set_target_client
+data:
+  target_client_id: dr-abc12345
+  remove: true
+```
+
+```yaml
+service: dashboard_rotator.set_target_client
+data: {}
+```
+
+The empty payload form clears all targets.
 
 Set or clear an alias:
 
@@ -180,10 +215,11 @@ The status card shows:
 - pause/resume commands now take effect even during the pre-start `waiting_start` stage instead of being masked by start-delay logic
 - clicks on status-card controls no longer reset `interaction_pause`; pressing Pause while interaction-paused now switches cleanly to manual pause
 - options flow client management can now add/remove individual target clients
-- target client
+- target chips summary
 - active client / alias
 - all recent clients
 - quick alias editing buttons
+- per-client details and per-client target controls
 
 The options flow client-management step shows:
 

@@ -81,8 +81,9 @@
 - **Pause after interaction**：使用者互動後暫停幾秒
 - **Only rotate when page is visible**：頁面可見時才輪播
 - **Start delay**：頁面載入後延遲幾秒才開始輪播
-- **Target client ID**：指定只讓某個 client 輪播（可空白）
+- **單一 target 覆蓋**：General settings 裡的單選覆蓋欄位（可空白）
 - **Views editor**：GUI 管理各個輪播頁
+- **Client management**：真正的 multi-target / alias / client details 管理入口
 - **Advanced JSON**：進階 fallback 編輯模式
 
 ---
@@ -160,8 +161,9 @@
 ### Client Management 頁可以做什麼
 
 - 看目前有哪些已知 client
-- 選擇 target client
-- 清除 target client
+- 加入 target client
+- 移出 target client
+- 清除全部 target client
 - 編輯 alias
 - 清除 alias
 - 查看 client details
@@ -171,7 +173,8 @@
 如果你有多個瀏覽器同時開著同一個 dashboard：
 
 - 不指定 target client：所有符合條件的 client 都可能輪播
-- 指定 `target_client_id`：只有指定的那一個 client 會自動輪播
+- 指定單一 `target_client_id`：只鎖定單一 client
+- 指定 `target_client_ids`：可同時鎖定多個 target client
 
 這很適合：
 
@@ -256,6 +259,7 @@ meeting-room-panel
 - `profile`
 - `command`
 - `active_client_id`
+- `target_client_ids`
 - `active_client_alias`
 - `active_client_count`
 - `target_client_id`
@@ -277,6 +281,7 @@ meeting-room-panel
 - `dashboard_rotator.previous_view`
 - `dashboard_rotator.jump_to_view`
 - `dashboard_rotator.set_client_alias`
+- `dashboard_rotator.set_target_client`
 
 ### 共通規則
 
@@ -363,6 +368,43 @@ data:
 
 ---
 
+### 9.7 設定 / 加入 / 移出 / 清空 Target
+
+直接指定單一 target：
+
+```yaml
+service: dashboard_rotator.set_target_client
+data:
+  target_client_id: dr-abc12345
+```
+
+加入到既有 target 清單：
+
+```yaml
+service: dashboard_rotator.set_target_client
+data:
+  target_client_id: dr-abc12345
+  append: true
+```
+
+從 target 清單移除：
+
+```yaml
+service: dashboard_rotator.set_target_client
+data:
+  target_client_id: dr-abc12345
+  remove: true
+```
+
+清空全部 target：
+
+```yaml
+service: dashboard_rotator.set_target_client
+data: {}
+```
+
+---
+
 ## 10. 狀態卡（Optional Status Card）
 
 因為整合會註冊前端控制器，所以也提供一張可選的卡：
@@ -404,6 +446,7 @@ enabled_entity: switch.uninus_dashboard_rotator_test_enabled
 - pause / resume 在 `waiting_start`（開始前等待）階段也會生效，不會再被 start delay 邏輯蓋掉
 - status card 內按鈕/開關的操作不再被算成一般互動；在 `互動暫停` 狀態下按 Pause 會直接切成 `手動暫停`
 - options flow 的 client management 現在可逐一加入 / 移除 target client
+- target chips 摘要（可直接看目前有哪些 target）
 - target client
 - active client
 - active client alias
