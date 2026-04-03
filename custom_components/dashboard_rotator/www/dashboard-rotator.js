@@ -9,6 +9,7 @@ const I18N = {
     runtimeNotFound: "Dashboard Rotator runtime sensor not found.",
     status: "Status",
     dashboard: "Dashboard",
+    thisBrowserClient: "This browser client",
     rotatorEnabled: "Rotator enabled",
     switchEntityNotResolved: "switch entity not resolved",
     targetClient: "Target client",
@@ -55,6 +56,7 @@ const I18N = {
     runtimeNotFound: "找不到 Dashboard Rotator runtime 感測器。",
     status: "狀態",
     dashboard: "儀表板",
+    thisBrowserClient: "這個瀏覽器的 client",
     rotatorEnabled: "輪播啟用",
     switchEntityNotResolved: "無法解析對應的 switch entity",
     targetClient: "目標 client",
@@ -563,6 +565,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
     const activeClientId = attrs.active_client_id || null;
     const activeClientAlias = attrs.active_client_alias || null;
     const targetClientId = attrs.target_client_id || profile.target_client_id || null;
+    const currentBrowserClientId = window.dashboardRotatorController?._clientId || window.sessionStorage?.getItem?.("dashboard_rotator_client_id") || null;
     const enabledEntityId = this.getEnabledEntityId(runtime);
     const enabledState = enabledEntityId ? this._hass?.states?.[enabledEntityId]?.state : null;
     const enabledKnown = enabledState === "on" || enabledState === "off";
@@ -594,6 +597,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
         <div class="pad">
           <div class="row"><strong>${this.t("status")}</strong><span>${this.formatStatus(runtime.state)}</span></div>
           <div class="row"><strong>${this.t("dashboard")}</strong><span>${profile.dashboard_path || "-"}</span></div>
+          <div class="row"><strong>${this.t("thisBrowserClient")}</strong><span>${currentBrowserClientId || "-"}</span></div>
           <div class="switch-row">
             <div class="switch-meta">
               <span class="switch-title">${this.t("rotatorEnabled")}</span>
@@ -622,7 +626,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
             ${clients.map((item) => `
               <div class="client-item ${item.client_id === activeClientId ? 'active' : ''}">
                 <div class="client-head">
-                  <span>${item.display_name || item.client_id || '-'}${item.client_id === targetClientId ? ' 🎯' : ''}</span>
+                  <span>${item.display_name || item.client_id || '-'}${item.client_id === targetClientId ? ' 🎯' : ''}${item.client_id === currentBrowserClientId ? ' 🖥️' : ''}</span>
                   <span>${this.formatStatus(item.status)}</span>
                 </div>
                 <div class="tiny">${this.t("id")}: ${item.client_id || '-'}</div>

@@ -12,7 +12,7 @@
 
 ## 1. 功能總覽
 
-目前版本：`0.1.15`
+目前版本：`0.1.16`
 
 ### 目前已支援
 
@@ -392,6 +392,7 @@ enabled_entity: switch.uninus_dashboard_rotator_test_enabled
 
 - rotator 啟用狀態
 - 內嵌 HA 風格開關（可直接 on/off）
+- 目前這個瀏覽器自己的 client ID（方便對照是哪一台 kiosk / 哪個分頁）
 - target client
 - active client
 - active client alias
