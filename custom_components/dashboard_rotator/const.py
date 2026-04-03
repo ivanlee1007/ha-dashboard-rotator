@@ -5,7 +5,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "dashboard_rotator"
 NAME = "Dashboard Rotator"
-VERSION = "0.1.24"
+VERSION = "0.1.25"
 
 PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.BUTTON]
 

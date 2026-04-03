@@ -654,6 +654,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
         .client-head { display:flex; justify-content:space-between; gap:8px; font-weight:600; list-style:none; cursor:pointer; padding: 10px; align-items:flex-start; }
         .client-head::-webkit-details-marker { display:none; }
         .client-title { min-width:0; }
+        .client-id-summary { margin-top: 4px; }
         .client-body { padding: 0 10px 10px; }
         .tiny { font-size: 12px; color: var(--secondary-text-color); }
         .switch-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin: 6px 0; }
@@ -702,6 +703,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
                 <summary class="client-head">
                   <div class="client-title">
                     <div>${item.display_name || item.client_id || '-'}</div>
+                    <div class="tiny client-id-summary">${this.t("id")}: ${item.client_id || '-'}</div>
                     <div class="role-badges">
                       ${targetClientIds.includes(item.client_id) ? `<span class="role-badge target">🎯 ${this.t("targetBadge")}</span>` : ''}
                       ${item.client_id === currentBrowserClientId ? `<span class="role-badge current">🖥️ ${this.t("currentBadge")}</span>` : ''}
