@@ -2,7 +2,7 @@
 
 Home Assistant custom integration that rotates Lovelace dashboard views on a timed interval.
 
-Current version: `0.1.23`
+Current version: `0.1.24`
 
 Chinese manual / 中文使用說明：[`README.zh-TW.md`](./README.zh-TW.md)
 
@@ -175,6 +175,7 @@ The status card shows:
 - General settings now clearly labels the field as a single-target override; multi-target editing lives in Client management
 - status card client tiles now use stable sorting (not heartbeat `updated_at`) so buttons stop jumping around while you try to click them
 - status card now shows target/current/active as badges/chips instead of relying on position or inline emoji suffixes
+- status card client tiles are now collapsible, reducing visual density while keeping per-client actions available when expanded
 - options flow client management can now add/remove individual target clients
 - target client
 - active client / alias

@@ -537,6 +537,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
   setConfig(config) {
     this._config = config || {};
     this._strings = getUiStrings();
+    this._expandedClientIds = this._expandedClientIds || new Set();
     if (!this.shadowRoot) {
       this.attachShadow({ mode: "open" });
       this.shadowRoot.addEventListener("click", (ev) => {
@@ -604,6 +605,11 @@ class DashboardRotatorStatusCard extends HTMLElement {
     ) || null;
   }
 
+  isClientExpanded(clientId, activeClientId, targetClientIds, currentBrowserClientId) {
+    if (this._expandedClientIds?.has(clientId)) return true;
+    return clientId === activeClientId || clientId === currentBrowserClientId || targetClientIds.includes(clientId);
+  }
+
   render() {
     if (!this.shadowRoot) return;
     const runtime = this.findRuntime();
@@ -643,10 +649,12 @@ class DashboardRotatorStatusCard extends HTMLElement {
         .role-badge.active { border-color: var(--success-color, #4caf50); color: var(--success-color, #4caf50); }
         .muted { color: var(--secondary-text-color); }
         .client-list { margin-top: 12px; display:grid; gap:8px; }
-        .client-item { border: 1px solid var(--divider-color); border-radius: 10px; padding: 10px; }
+        .client-item { border: 1px solid var(--divider-color); border-radius: 10px; }
         .client-item.active { border-color: var(--primary-color); }
-        .client-head { display:flex; justify-content:space-between; gap:8px; font-weight:600; margin-bottom: 4px; }
+        .client-head { display:flex; justify-content:space-between; gap:8px; font-weight:600; list-style:none; cursor:pointer; padding: 10px; align-items:flex-start; }
+        .client-head::-webkit-details-marker { display:none; }
         .client-title { min-width:0; }
+        .client-body { padding: 0 10px 10px; }
         .tiny { font-size: 12px; color: var(--secondary-text-color); }
         .switch-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin: 6px 0; }
         .switch-meta { display:flex; flex-direction:column; gap:2px; }
@@ -690,8 +698,8 @@ class DashboardRotatorStatusCard extends HTMLElement {
           </div>
           <div class="client-list">
             ${clients.map((item) => `
-              <div class="client-item ${item.client_id === activeClientId ? 'active' : ''}">
-                <div class="client-head">
+              <details class="client-item ${item.client_id === activeClientId ? 'active' : ''}" data-client-id="${item.client_id || ''}" ${this.isClientExpanded(item.client_id, activeClientId, targetClientIds, currentBrowserClientId) ? 'open' : ''}>
+                <summary class="client-head">
                   <div class="client-title">
                     <div>${item.display_name || item.client_id || '-'}</div>
                     <div class="role-badges">
@@ -701,7 +709,8 @@ class DashboardRotatorStatusCard extends HTMLElement {
                     </div>
                   </div>
                   <span>${this.formatStatus(item.status)}</span>
-                </div>
+                </summary>
+                <div class="client-body">
                 <div class="tiny">${this.t("id")}: ${item.client_id || '-'}</div>
                 <div class="tiny">${this.t("currentLabel")}: ${item.current_view || '-'} | ${this.t("nextLabel")}: ${item.next_view || '-'}</div>
                 <div class="tiny">${this.t("remainingLabel")}: ${item.remaining_seconds ?? '-'} | ${this.t("visibleLabel")}: ${this.formatBool(item.page_visible)}</div>
@@ -713,13 +722,23 @@ class DashboardRotatorStatusCard extends HTMLElement {
                     ? `<button data-action="remove_target" data-client-id="${item.client_id || ''}">${this.t("removeFromTargets")}</button>`
                     : `<button data-action="add_target_current" data-client-id="${item.client_id || ''}">${this.t("addToTargets")}</button>`}
                 </div>
-              </div>
+                </div>
+              </details>
             `).join('')}
           </div>
           <div class="muted" style="margin-top:12px;">${this.t("lastUpdate")}: ${client.updated_at || "-"}</div>
         </div>
       </ha-card>
     `;
+
+    this.shadowRoot.querySelectorAll('details.client-item[data-client-id]').forEach((el) => {
+      el.addEventListener('toggle', () => {
+        const clientId = String(el.dataset.clientId || '');
+        if (!clientId) return;
+        if (el.open) this._expandedClientIds.add(clientId);
+        else this._expandedClientIds.delete(clientId);
+      });
+    });
   }
 }
 
