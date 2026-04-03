@@ -188,6 +188,21 @@ class RotatorManager:
         self._refresh_active_state()
         self.async_write()
 
+    async def async_set_target_client(self, client_id: str | None) -> None:
+        """Persist the target client selection."""
+        value = (client_id or "").strip()
+
+        self.profile = {
+            **self.profile,
+            CONF_TARGET_CLIENT_ID: value,
+        }
+        self.hass.config_entries.async_update_entry(
+            self.entry,
+            options=build_storage_dict(self.profile),
+        )
+        self._refresh_active_state()
+        self.async_write()
+
     def _prune_stale_clients(self, now: datetime) -> None:
         """Drop stale client heartbeats."""
         cutoff = now - timedelta(seconds=CLIENT_STALE_SECONDS)

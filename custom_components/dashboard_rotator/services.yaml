@@ -65,3 +65,12 @@ set_client_alias:
       example: lobby-tablet
       selector:
         text:
+set_target_client:
+  name: Set target client
+  description: Set or clear the profile target client.
+  fields:
+    target_client_id:
+      required: false
+      example: dr-abc12345
+      selector:
+        text:

@@ -28,6 +28,7 @@ from .const import (
     SERVICE_PREVIOUS_VIEW,
     SERVICE_RESUME,
     SERVICE_SET_CLIENT_ALIAS,
+    SERVICE_SET_TARGET_CLIENT,
 )
 from .helpers import normalize_path
 from .manager import RotatorManager
@@ -57,6 +58,11 @@ SERVICE_SET_CLIENT_ALIAS_SCHEMA = vol.Schema(
     {
         vol.Required("client_id"): cv.string,
         vol.Optional("alias"): cv.string,
+    }
+)
+SERVICE_SET_TARGET_CLIENT_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_TARGET_CLIENT_ID): cv.string,
     }
 )
 
@@ -125,6 +131,11 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 call.data.get("alias"),
             )
 
+    async def _handle_set_target_client(call: ServiceCall) -> None:
+        manager = _get_manager(hass)
+        if manager:
+            await manager.async_set_target_client(call.data.get(CONF_TARGET_CLIENT_ID))
+
     if not hass.services.has_service(DOMAIN, SERVICE_PAUSE):
         hass.services.async_register(DOMAIN, SERVICE_PAUSE, _handle_pause, schema=SERVICE_BASE_SCHEMA)
         hass.services.async_register(DOMAIN, SERVICE_RESUME, _handle_resume, schema=SERVICE_BASE_SCHEMA)
@@ -146,6 +157,12 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             SERVICE_SET_CLIENT_ALIAS,
             _handle_set_client_alias,
             schema=SERVICE_SET_CLIENT_ALIAS_SCHEMA,
+        )
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_SET_TARGET_CLIENT,
+            _handle_set_target_client,
+            schema=SERVICE_SET_TARGET_CLIENT_SCHEMA,
         )
 
     return True

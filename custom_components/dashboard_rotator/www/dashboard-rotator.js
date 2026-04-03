@@ -11,6 +11,8 @@ const I18N = {
     dashboard: "Dashboard",
     thisBrowserClient: "This browser client",
     rotatorEnabled: "Rotator enabled",
+    setAsTarget: "Set as target",
+    alreadyTarget: "Already target",
     switchEntityNotResolved: "switch entity not resolved",
     targetClient: "Target client",
     allClients: "all clients",
@@ -58,6 +60,8 @@ const I18N = {
     dashboard: "儀表板",
     thisBrowserClient: "這個瀏覽器的 client",
     rotatorEnabled: "輪播啟用",
+    setAsTarget: "設成 target",
+    alreadyTarget: "已是 target",
     switchEntityNotResolved: "無法解析對應的 switch entity",
     targetClient: "目標 client",
     allClients: "全部 client",
@@ -512,6 +516,10 @@ class DashboardRotatorStatusCard extends HTMLElement {
           this._hass.callService(DOMAIN, "set_client_alias", { client_id: clientId, alias });
           return;
         }
+        if (action === "set_target_current" && el.dataset.clientId) {
+          this._hass.callService(DOMAIN, "set_target_client", { target_client_id: el.dataset.clientId });
+          return;
+        }
         if (action === "jump" && el.dataset.path) {
           this._hass.callService(DOMAIN, "jump_to_view", { ...data, path: el.dataset.path });
           return;
@@ -598,6 +606,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
           <div class="row"><strong>${this.t("status")}</strong><span>${this.formatStatus(runtime.state)}</span></div>
           <div class="row"><strong>${this.t("dashboard")}</strong><span>${profile.dashboard_path || "-"}</span></div>
           <div class="row"><strong>${this.t("thisBrowserClient")}</strong><span>${currentBrowserClientId || "-"}</span></div>
+          ${currentBrowserClientId ? `<div class="buttons" style="margin-top:6px;"><button data-action="set_target_current" data-client-id="${currentBrowserClientId}" ${currentBrowserClientId === targetClientId ? 'disabled' : ''}>${currentBrowserClientId === targetClientId ? this.t("alreadyTarget") : this.t("setAsTarget")}</button></div>` : ''}
           <div class="switch-row">
             <div class="switch-meta">
               <span class="switch-title">${this.t("rotatorEnabled")}</span>

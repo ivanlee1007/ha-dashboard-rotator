@@ -5,7 +5,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "dashboard_rotator"
 NAME = "Dashboard Rotator"
-VERSION = "0.1.16"
+VERSION = "0.1.17"
 
 PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.BUTTON]
 
@@ -57,6 +57,7 @@ SERVICE_PREVIOUS_VIEW = "previous_view"
 SERVICE_JUMP_TO_VIEW = "jump_to_view"
 SERVICE_CLIENT_STATE = "client_state"
 SERVICE_SET_CLIENT_ALIAS = "set_client_alias"
+SERVICE_SET_TARGET_CLIENT = "set_target_client"
 
 ATTR_PROFILE = "profile"
 ATTR_COMMAND = "command"
