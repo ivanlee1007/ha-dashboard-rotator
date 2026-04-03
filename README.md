@@ -2,7 +2,7 @@
 
 Home Assistant custom integration that rotates Lovelace dashboard views on a timed interval.
 
-Current version: `0.1.14`
+Current version: `0.1.15`
 
 Chinese manual / 中文使用說明：[`README.zh-TW.md`](./README.zh-TW.md)
 

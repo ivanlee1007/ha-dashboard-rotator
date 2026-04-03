@@ -432,6 +432,27 @@ def _build_view_edit_schema(defaults: dict[str, Any], max_position: int) -> vol.
     )
 
 
+def _remap_views_for_dashboard_path(
+    views: list[dict[str, Any]],
+    old_dashboard_path: str,
+    new_dashboard_path: str,
+) -> list[dict[str, Any]]:
+    """Remap existing view paths when the dashboard base path changes."""
+    if not old_dashboard_path or not new_dashboard_path or old_dashboard_path == new_dashboard_path:
+        return deepcopy(views)
+
+    remapped: list[dict[str, Any]] = []
+    for view in deepcopy(views):
+        path = normalize_path(str(view.get("path", "")))
+        if path == old_dashboard_path:
+            view["path"] = new_dashboard_path
+        elif path.startswith(f"{old_dashboard_path}/"):
+            suffix = path[len(old_dashboard_path):]
+            view["path"] = f"{new_dashboard_path}{suffix}"
+        remapped.append(view)
+    return remapped
+
+
 class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Dashboard Rotator."""
 
@@ -500,9 +521,19 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
         config = self._ensure_working()
 
         if user_input is not None:
+            new_dashboard_path = normalize_path(
+                str(user_input.get(CONF_DASHBOARD_PATH, config.get(CONF_DASHBOARD_PATH, DEFAULT_DASHBOARD_PATH)))
+            ) or DEFAULT_DASHBOARD_PATH
+            remapped_views = _remap_views_for_dashboard_path(
+                config[CONF_VIEWS],
+                config.get(CONF_DASHBOARD_PATH, DEFAULT_DASHBOARD_PATH),
+                new_dashboard_path,
+            )
             user_input = {
                 **user_input,
+                CONF_DASHBOARD_PATH: new_dashboard_path,
                 CONF_TARGET_CLIENT_ID: str(user_input.get(CONF_TARGET_CLIENT_ID, "") or "").strip(),
+                CONF_VIEWS_JSON: format_views_json(remapped_views),
             }
             try:
                 self._set_working(self._build_candidate(user_input))
@@ -902,9 +933,19 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
         config = self._ensure_working()
 
         if user_input is not None:
+            new_dashboard_path = normalize_path(
+                str(user_input.get(CONF_DASHBOARD_PATH, config.get(CONF_DASHBOARD_PATH, DEFAULT_DASHBOARD_PATH)))
+            ) or DEFAULT_DASHBOARD_PATH
+            remapped_views = _remap_views_for_dashboard_path(
+                config[CONF_VIEWS],
+                config.get(CONF_DASHBOARD_PATH, DEFAULT_DASHBOARD_PATH),
+                new_dashboard_path,
+            )
             user_input = {
                 **user_input,
+                CONF_DASHBOARD_PATH: new_dashboard_path,
                 CONF_TARGET_CLIENT_ID: str(user_input.get(CONF_TARGET_CLIENT_ID, "") or "").strip(),
+                CONF_VIEWS_JSON: format_views_json(remapped_views),
             }
             try:
                 self._set_working(self._build_candidate(user_input))
