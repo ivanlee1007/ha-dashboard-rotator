@@ -14,7 +14,7 @@
       },
       "general": {
         "title": "General settings",
-        "description": "Edit the profile behavior and client targeting.",
+        "description": "Edit the profile behavior here.\n\nCurrent targets: {current_targets}\n\nThis field is only a single-target override for setup. After the entry is created, use Client management for multi-target add/remove.",
         "data": {
           "name": "Profile name",
           "dashboard_path": "Dashboard base path",
@@ -23,7 +23,7 @@
           "pause_on_interaction": "Pause after interaction (seconds)",
           "only_when_visible": "Only rotate when page is visible",
           "start_delay": "Start delay (seconds)",
-          "target_client_id": "Target client ID (blank = all clients)"
+          "target_client_id": "Single target override (optional)"
         }
       },
       "views": {
@@ -106,7 +106,7 @@
       },
       "general": {
         "title": "General settings",
-        "description": "Edit the profile behavior and client targeting.",
+        "description": "Edit the profile behavior here.\n\nCurrent targets: {current_targets}\n\nThis field only sets a single target. Use Client management for multi-target add/remove.",
         "data": {
           "name": "Profile name",
           "dashboard_path": "Dashboard base path",
@@ -115,7 +115,7 @@
           "pause_on_interaction": "Pause after interaction (seconds)",
           "only_when_visible": "Only rotate when page is visible",
           "start_delay": "Start delay (seconds)",
-          "target_client_id": "Target client ID (blank = all clients)"
+          "target_client_id": "Single target override (optional)"
         }
       },
       "views": {

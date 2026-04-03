@@ -132,6 +132,11 @@ def _views_summary(views: list[dict[str, Any]]) -> str:
     )
 
 
+def _target_summary(target_client_ids: list[str] | None) -> str:
+    clean = [str(client_id or "").strip() for client_id in (target_client_ids or []) if str(client_id or "").strip()]
+    return ", ".join(clean) if clean else "all clients"
+
+
 def _client_option_label(
     client_id: str,
     alias: str | None = None,
@@ -569,6 +574,9 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
                 config,
             ),
             errors=errors,
+            description_placeholders={
+                "current_targets": _target_summary(config.get(CONF_TARGET_CLIENT_IDS, [])),
+            },
         )
 
     async def async_step_advanced(self, user_input: dict[str, Any] | None = None):
@@ -1007,6 +1015,9 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
                 _build_general_schema(config, self._build_client_options()), config
             ),
             errors=errors,
+            description_placeholders={
+                "current_targets": _target_summary(config.get(CONF_TARGET_CLIENT_IDS, [])),
+            },
         )
 
     async def async_step_advanced(self, user_input: dict[str, Any] | None = None):

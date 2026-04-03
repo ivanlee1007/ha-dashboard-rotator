@@ -14,7 +14,7 @@
       },
       "general": {
         "title": "一般設定",
-        "description": "編輯設定檔行為與 client 目標。",
+        "description": "在這裡編輯設定檔行為。\n\n目前 targets：{current_targets}\n\n這個欄位只用來做初始單一 target 覆蓋。建立設定後，如要做 multi-target 增減，請到 Client 管理。",
         "data": {
           "name": "設定檔名稱",
           "dashboard_path": "儀表板基底路徑",
@@ -23,7 +23,7 @@
           "pause_on_interaction": "互動後暫停（秒）",
           "only_when_visible": "只有頁面可見時才輪播",
           "start_delay": "啟動延遲（秒）",
-          "target_client_id": "目標 client ID（留白 = 全部 client）"
+          "target_client_id": "單一 target 覆蓋（選填）"
         }
       },
       "views": {
@@ -106,7 +106,7 @@
       },
       "general": {
         "title": "一般設定",
-        "description": "編輯設定檔行為與 client 目標。",
+        "description": "在這裡編輯設定檔行為。\n\n目前 targets：{current_targets}\n\n這個欄位只會設定單一 target；如要做 multi-target 增減，請到 Client 管理。",
         "data": {
           "name": "設定檔名稱",
           "dashboard_path": "儀表板基底路徑",
@@ -115,7 +115,7 @@
           "pause_on_interaction": "互動後暫停（秒）",
           "only_when_visible": "只有頁面可見時才輪播",
           "start_delay": "啟動延遲（秒）",
-          "target_client_id": "目標 client ID（留白 = 全部 client）"
+          "target_client_id": "單一 target 覆蓋（選填）"
         }
       },
       "views": {
