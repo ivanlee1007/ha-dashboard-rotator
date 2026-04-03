@@ -12,6 +12,7 @@ const I18N = {
     thisBrowserClient: "This browser client",
     rotatorEnabled: "Rotator enabled",
     addToTargets: "Add to targets",
+    removeFromTargets: "Remove from targets",
     alreadyTarget: "Already targeted",
     clearTargets: "Clear targets",
     switchEntityNotResolved: "switch entity not resolved",
@@ -62,6 +63,7 @@ const I18N = {
     thisBrowserClient: "這個瀏覽器的 client",
     rotatorEnabled: "輪播啟用",
     addToTargets: "加入 target",
+    removeFromTargets: "移出 target",
     alreadyTarget: "已在 target 內",
     clearTargets: "清除 target",
     switchEntityNotResolved: "無法解析對應的 switch entity",
@@ -526,6 +528,10 @@ class DashboardRotatorStatusCard extends HTMLElement {
           this._hass.callService(DOMAIN, "set_target_client", { target_client_id: el.dataset.clientId, append: true });
           return;
         }
+        if (action === "remove_target" && el.dataset.clientId) {
+          this._hass.callService(DOMAIN, "set_target_client", { target_client_id: el.dataset.clientId, remove: true });
+          return;
+        }
         if (action === "clear_targets") {
           this._hass.callService(DOMAIN, "set_target_client", {});
           return;
@@ -658,7 +664,12 @@ class DashboardRotatorStatusCard extends HTMLElement {
                 <div class="tiny">${this.t("remainingLabel")}: ${item.remaining_seconds ?? '-'} | ${this.t("visibleLabel")}: ${this.formatBool(item.page_visible)}</div>
                 <div class="tiny">${this.t("title")}: ${item.page_title || '-'}</div>
                 <div class="tiny">${this.t("updated")}: ${item.updated_at || '-'}</div>
-                <div style="margin-top:8px;"><button data-action="alias" data-client-id="${item.client_id || ''}" data-alias="${item.client_alias || ''}">${this.t("setAlias")}</button></div>
+                <div class="buttons" style="margin-top:8px;">
+                  <button data-action="alias" data-client-id="${item.client_id || ''}" data-alias="${item.client_alias || ''}">${this.t("setAlias")}</button>
+                  ${targetClientIds.includes(item.client_id)
+                    ? `<button data-action="remove_target" data-client-id="${item.client_id || ''}">${this.t("removeFromTargets")}</button>`
+                    : `<button data-action="add_target_current" data-client-id="${item.client_id || ''}">${this.t("addToTargets")}</button>`}
+                </div>
               </div>
             `).join('')}
           </div>

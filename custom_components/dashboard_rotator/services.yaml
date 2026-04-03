@@ -79,3 +79,8 @@ set_target_client:
       example: true
       selector:
         boolean:
+    remove:
+      required: false
+      example: true
+      selector:
+        boolean:

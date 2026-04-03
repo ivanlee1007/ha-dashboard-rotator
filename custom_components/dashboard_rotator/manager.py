@@ -196,7 +196,12 @@ class RotatorManager:
         self._refresh_active_state()
         self.async_write()
 
-    async def async_set_target_client(self, client_id: str | None, append: bool = False) -> None:
+    async def async_set_target_client(
+        self,
+        client_id: str | None,
+        append: bool = False,
+        remove: bool = False,
+    ) -> None:
         """Persist the target client selection."""
         value = (client_id or "").strip()
         current = [
@@ -206,6 +211,8 @@ class RotatorManager:
         ]
         if not value:
             target_client_ids: list[str] = []
+        elif remove:
+            target_client_ids = [item for item in current if item != value]
         elif append:
             target_client_ids = current if value in current else [*current, value]
         else:
