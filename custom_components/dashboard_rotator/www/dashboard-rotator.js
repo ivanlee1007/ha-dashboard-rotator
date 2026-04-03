@@ -419,12 +419,46 @@ class DashboardRotatorController {
 
     const now = Date.now();
     const currentIndex = this.findCurrentIndex(path, views);
+    const waitingToStart = currentIndex === -1;
+    const firstView = views[0];
+    const currentView = waitingToStart ? null : views[currentIndex];
+    const nextView = waitingToStart ? firstView : views[(currentIndex + 1) % views.length];
 
-    if (currentIndex === -1) {
+    if (this._viewStartPath !== path) {
+      this._viewStartPath = path;
+      this._viewStartedAt = now;
+    }
+
+    if (this._commandPause) {
+      await this.reportState(hass, {
+        client_id: this._clientId,
+        status: "manual_pause",
+        current_view: waitingToStart ? path : currentView.path,
+        next_view: nextView?.path || null,
+        remaining_seconds: null,
+        page_visible: visible,
+        on_managed_dashboard: true,
+      });
+      return;
+    }
+
+    if (this._manualPauseUntil > now) {
+      await this.reportState(hass, {
+        client_id: this._clientId,
+        status: "interaction_pause",
+        current_view: waitingToStart ? path : currentView.path,
+        next_view: nextView?.path || null,
+        remaining_seconds: Math.ceil((this._manualPauseUntil - now) / 1000),
+        page_visible: visible,
+        on_managed_dashboard: true,
+      });
+      return;
+    }
+
+    if (waitingToStart) {
       if (!this._dashboardEnteredAt) this._dashboardEnteredAt = now;
       const waitMs = Math.max(0, Number(profile.start_delay || 0) * 1000);
       const remaining = Math.max(0, Math.ceil((waitMs - (now - this._dashboardEnteredAt)) / 1000));
-      const firstView = views[0];
       if (waitMs === 0 || now - this._dashboardEnteredAt >= waitMs) {
         await this.navigateTo(firstView.path);
       }
@@ -441,39 +475,6 @@ class DashboardRotatorController {
     }
 
     this._dashboardEnteredAt = 0;
-    const currentView = views[currentIndex];
-    const nextView = views[(currentIndex + 1) % views.length];
-
-    if (this._viewStartPath !== path) {
-      this._viewStartPath = path;
-      this._viewStartedAt = now;
-    }
-
-    if (this._commandPause) {
-      await this.reportState(hass, {
-        client_id: this._clientId,
-        status: "manual_pause",
-        current_view: currentView.path,
-        next_view: nextView.path,
-        remaining_seconds: null,
-        page_visible: visible,
-        on_managed_dashboard: true,
-      });
-      return;
-    }
-
-    if (this._manualPauseUntil > now) {
-      await this.reportState(hass, {
-        client_id: this._clientId,
-        status: "interaction_pause",
-        current_view: currentView.path,
-        next_view: nextView.path,
-        remaining_seconds: Math.ceil((this._manualPauseUntil - now) / 1000),
-        page_visible: visible,
-        on_managed_dashboard: true,
-      });
-      return;
-    }
 
     const intervalMs = this.getSecondsForView(currentView, profile) * 1000;
     const elapsedMs = now - this._viewStartedAt;
