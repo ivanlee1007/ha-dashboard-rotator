@@ -116,6 +116,30 @@ const getUiStrings = () => {
   return I18N.en;
 };
 
+const normalizeSortText = (value) => String(value || '').trim().toLowerCase();
+
+const stableClientSort = (clients, targetClientIds, currentBrowserClientId) => {
+  const targetIndex = new Map((targetClientIds || []).map((clientId, index) => [clientId, index]));
+  return [...clients].sort((a, b) => {
+    const aIsTarget = targetIndex.has(a.client_id);
+    const bIsTarget = targetIndex.has(b.client_id);
+    if (aIsTarget !== bIsTarget) return aIsTarget ? -1 : 1;
+    if (aIsTarget && bIsTarget) {
+      return (targetIndex.get(a.client_id) ?? 9999) - (targetIndex.get(b.client_id) ?? 9999);
+    }
+
+    const aIsCurrent = a.client_id === currentBrowserClientId;
+    const bIsCurrent = b.client_id === currentBrowserClientId;
+    if (aIsCurrent !== bIsCurrent) return aIsCurrent ? -1 : 1;
+
+    const aLabel = normalizeSortText(a.display_name || a.page_title || a.client_id);
+    const bLabel = normalizeSortText(b.display_name || b.page_title || b.client_id);
+    if (aLabel !== bLabel) return aLabel.localeCompare(bLabel);
+
+    return normalizeSortText(a.client_id).localeCompare(normalizeSortText(b.client_id));
+  });
+};
+
 const normalizePath = (value) => {
   const raw = String(value || "").split("?", 1)[0].split("#", 1)[0].trim();
   if (!raw) return "";
@@ -596,8 +620,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
     const enabledState = enabledEntityId ? this._hass?.states?.[enabledEntityId]?.state : null;
     const enabledKnown = enabledState === "on" || enabledState === "off";
     const views = Array.isArray(profile.views) ? profile.views.filter((view) => view.enabled !== false) : [];
-    const clients = Object.values(clientStates)
-      .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+    const clients = stableClientSort(Object.values(clientStates), targetClientIds, currentBrowserClientId);
 
     this.shadowRoot.innerHTML = `
       <style>
