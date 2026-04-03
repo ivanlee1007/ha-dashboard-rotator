@@ -2,7 +2,7 @@
 
 Home Assistant custom integration that rotates Lovelace dashboard views on a timed interval.
 
-Current version: `0.1.26`
+Current version: `0.1.27`
 
 Chinese manual / 中文使用說明：[`README.zh-TW.md`](./README.zh-TW.md)
 
@@ -178,6 +178,7 @@ The status card shows:
 - status card client tiles are now collapsible, reducing visual density while keeping per-client actions available when expanded
 - collapsed client tiles now still show the client ID in the summary row for easier scanning
 - pause/resume commands now take effect even during the pre-start `waiting_start` stage instead of being masked by start-delay logic
+- clicks on status-card controls no longer reset `interaction_pause`; pressing Pause while interaction-paused now switches cleanly to manual pause
 - options flow client management can now add/remove individual target clients
 - target client
 - active client / alias

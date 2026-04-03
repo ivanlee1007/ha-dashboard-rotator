@@ -256,6 +256,8 @@ class DashboardRotatorController {
   }
 
   handleInteraction() {
+    const event = arguments[0];
+    if (event && this.isStatusCardControlInteraction(event)) return;
     const hass = this.getHass();
     const runtime = this.findRuntimeState(hass);
     const profile = runtime?.attributes?.profile;
@@ -268,6 +270,17 @@ class DashboardRotatorController {
     if (seconds <= 0) return;
     this._manualPauseUntil = Date.now() + (seconds * 1000);
     this.tick();
+  }
+
+  isStatusCardControlInteraction(event) {
+    const path = typeof event?.composedPath === "function" ? event.composedPath() : [];
+    return path.some((node) => {
+      if (!node || typeof node !== "object") return false;
+      const action = node?.dataset?.action;
+      if (action) return true;
+      const tag = String(node?.tagName || "").toLowerCase();
+      return tag === "dashboard-rotator-status" || tag === "ha-switch";
+    });
   }
 
   async handleCommand(command, profile, currentPath, views) {

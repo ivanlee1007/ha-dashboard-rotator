@@ -12,7 +12,7 @@
 
 ## 1. 功能總覽
 
-目前版本：`0.1.26`
+目前版本：`0.1.27`
 
 ### 目前已支援
 
@@ -402,6 +402,7 @@ enabled_entity: switch.uninus_dashboard_rotator_test_enabled
 - status card 的 client 小卡改成可折疊，降低資訊密度；展開後仍可直接做 alias / target 操作
 - client 小卡在收合狀態下也會顯示 ID，翻找時不用先展開
 - pause / resume 在 `waiting_start`（開始前等待）階段也會生效，不會再被 start delay 邏輯蓋掉
+- status card 內按鈕/開關的操作不再被算成一般互動；在 `互動暫停` 狀態下按 Pause 會直接切成 `手動暫停`
 - options flow 的 client management 現在可逐一加入 / 移除 target client
 - target client
 - active client
