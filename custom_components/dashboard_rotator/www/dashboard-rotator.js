@@ -363,25 +363,43 @@ class DashboardRotatorStatusCard extends HTMLElement {
     return null;
   }
 
+  getEnabledEntityId(runtime) {
+    const explicit = String(this._config?.enabled_entity || "").trim();
+    if (explicit) return explicit;
+    const runtimeEntityId = String(runtime?.entity_id || this._config?.entity || "").trim();
+    if (runtimeEntityId.startsWith("sensor.") && runtimeEntityId.endsWith("_runtime")) {
+      return runtimeEntityId.replace(/^sensor\./, "switch.").replace(/_runtime$/, "_enabled");
+    }
+    return "";
+  }
+
   setConfig(config) {
     this._config = config || {};
     if (!this.shadowRoot) {
       this.attachShadow({ mode: "open" });
       this.shadowRoot.addEventListener("click", (ev) => {
-        const action = ev.target?.dataset?.action;
+        const el = ev.target?.closest?.("[data-action]") || ev.target;
+        const action = el?.dataset?.action;
         if (!action || !this._hass) return;
         const targetClientId = String(this._config?.target_client_id || "").trim();
         const data = targetClientId ? { target_client_id: targetClientId } : {};
-        if (action === "alias" && ev.target.dataset.clientId) {
-          const clientId = ev.target.dataset.clientId;
-          const currentAlias = ev.target.dataset.alias || "";
+        if (action === "alias" && el.dataset.clientId) {
+          const clientId = el.dataset.clientId;
+          const currentAlias = el.dataset.alias || "";
           const alias = window.prompt(`Alias for ${clientId}`, currentAlias);
           if (alias === null) return;
           this._hass.callService(DOMAIN, "set_client_alias", { client_id: clientId, alias });
           return;
         }
-        if (action === "jump" && ev.target.dataset.path) {
-          this._hass.callService(DOMAIN, "jump_to_view", { ...data, path: ev.target.dataset.path });
+        if (action === "toggle_enabled" && el.dataset.entityId) {
+          const entityId = el.dataset.entityId;
+          const state = this._hass.states?.[entityId]?.state;
+          const service = state === "on" ? "turn_off" : "turn_on";
+          this._hass.callService("switch", service, { entity_id: entityId });
+          return;
+        }
+        if (action === "jump" && el.dataset.path) {
+          this._hass.callService(DOMAIN, "jump_to_view", { ...data, path: el.dataset.path });
           return;
         }
         this._hass.callService(DOMAIN, action, data);
@@ -425,6 +443,9 @@ class DashboardRotatorStatusCard extends HTMLElement {
     const activeClientId = attrs.active_client_id || null;
     const activeClientAlias = attrs.active_client_alias || null;
     const targetClientId = attrs.target_client_id || profile.target_client_id || null;
+    const enabledEntityId = this.getEnabledEntityId(runtime);
+    const enabledState = enabledEntityId ? this._hass?.states?.[enabledEntityId]?.state : null;
+    const enabledKnown = enabledState === "on" || enabledState === "off";
     const views = Array.isArray(profile.views) ? profile.views.filter((view) => view.enabled !== false) : [];
     const clients = Object.values(clientStates)
       .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
@@ -443,11 +464,17 @@ class DashboardRotatorStatusCard extends HTMLElement {
         .client-item.active { border-color: var(--primary-color); }
         .client-head { display:flex; justify-content:space-between; gap:8px; font-weight:600; margin-bottom: 4px; }
         .tiny { font-size: 12px; color: var(--secondary-text-color); }
+        .toggle-btn { min-width: 88px; font-weight: 600; }
+        .toggle-btn.on { border-color: var(--success-color, #2e7d32); color: var(--success-color, #2e7d32); }
+        .toggle-btn.off { border-color: var(--error-color, #c62828); color: var(--error-color, #c62828); }
+        .toggle-btn.unknown { opacity: 0.65; }
       </style>
       <ha-card header="Dashboard Rotator">
         <div class="pad">
           <div class="row"><strong>Status</strong><span>${runtime.state}</span></div>
           <div class="row"><strong>Dashboard</strong><span>${profile.dashboard_path || "-"}</span></div>
+          <div class="row"><strong>Rotator enabled</strong><span>${enabledKnown ? enabledState : (profile.enabled ? 'on (profile)' : 'off (profile)')}</span></div>
+          ${enabledEntityId ? `<div class="buttons"><button class="toggle-btn ${enabledKnown ? enabledState : 'unknown'}" data-action="toggle_enabled" data-entity-id="${enabledEntityId}">${enabledKnown ? (enabledState === 'on' ? 'Turn off' : 'Turn on') : 'Toggle rotator'}</button></div>` : ''}
           <div class="row"><strong>Target client</strong><span>${targetClientId || "all clients"}</span></div>
           ${this._config?.target_client_id ? `<div class="row"><strong>Card command target</strong><span>${this._config.target_client_id}</span></div>` : ''}
           <div class="row"><strong>Active client</strong><span>${activeClientAlias ? `${activeClientAlias} (${activeClientId || '-'})` : (activeClientId || "-")}</span></div>
