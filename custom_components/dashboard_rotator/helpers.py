@@ -20,6 +20,8 @@ from .const import (
     CONF_SECONDS,
     CONF_START_DELAY,
     CONF_TARGET_CLIENT_ID,
+    CONF_TARGET_CLIENT_IDS,
+    CONF_TARGET_CLIENT_IDS_JSON,
     CONF_TITLE,
     CONF_VIEWS,
     CONF_VIEWS_JSON,
@@ -32,6 +34,7 @@ from .const import (
     DEFAULT_PAUSE_ON_INTERACTION,
     DEFAULT_START_DELAY,
     DEFAULT_TARGET_CLIENT_ID,
+    DEFAULT_TARGET_CLIENT_IDS_JSON,
     DEFAULT_VIEWS_JSON,
 )
 
@@ -103,6 +106,32 @@ def parse_aliases_json(raw: str) -> dict[str, str]:
     return aliases
 
 
+def format_target_client_ids_json(target_client_ids: list[str]) -> str:
+    """Format target client ids as pretty JSON."""
+    return json.dumps(target_client_ids, indent=2, ensure_ascii=False)
+
+
+def parse_target_client_ids_json(raw: str) -> list[str]:
+    """Parse and validate target client ids JSON."""
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as err:
+        raise InvalidAliasesConfig(f"Invalid JSON: {err.msg}") from err
+
+    if not isinstance(parsed, list):
+        raise InvalidAliasesConfig("Target client IDs JSON must be a list")
+
+    target_client_ids: list[str] = []
+    seen: set[str] = set()
+    for value in parsed:
+        client_id = str(value or "").strip()
+        if not client_id or client_id in seen:
+            continue
+        seen.add(client_id)
+        target_client_ids.append(client_id)
+    return target_client_ids
+
+
 def parse_views_json(raw: str, dashboard_path: str, default_interval: int) -> list[dict[str, Any]]:
     """Parse and validate the views JSON."""
     try:
@@ -169,9 +198,29 @@ def normalize_config(data: dict[str, Any]) -> dict[str, Any]:
         or DEFAULT_CLIENT_ALIASES_JSON
     )
     aliases = parse_aliases_json(aliases_json)
-    target_client_id = str(
-        data.get(CONF_TARGET_CLIENT_ID, DEFAULT_TARGET_CLIENT_ID) or ""
-    ).strip()
+    if CONF_TARGET_CLIENT_IDS in data:
+        raw_ids = data.get(CONF_TARGET_CLIENT_IDS) or []
+        target_client_ids = []
+        seen: set[str] = set()
+        for value in raw_ids if isinstance(raw_ids, list) else []:
+            client_id = str(value or "").strip()
+            if not client_id or client_id in seen:
+                continue
+            seen.add(client_id)
+            target_client_ids.append(client_id)
+    elif CONF_TARGET_CLIENT_IDS_JSON in data:
+        target_ids_json = (
+            str(data.get(CONF_TARGET_CLIENT_IDS_JSON, DEFAULT_TARGET_CLIENT_IDS_JSON)).strip()
+            or DEFAULT_TARGET_CLIENT_IDS_JSON
+        )
+        target_client_ids = parse_target_client_ids_json(target_ids_json)
+    elif CONF_TARGET_CLIENT_ID in data:
+        target_client_id = str(data.get(CONF_TARGET_CLIENT_ID, DEFAULT_TARGET_CLIENT_ID) or "").strip()
+        target_client_ids = [target_client_id] if target_client_id else []
+    else:
+        target_client_ids = []
+
+    target_client_id = target_client_ids[0] if len(target_client_ids) == 1 else ""
 
     return {
         CONF_NAME: str(data.get(CONF_NAME, DEFAULT_NAME)).strip() or DEFAULT_NAME,
@@ -184,6 +233,8 @@ def normalize_config(data: dict[str, Any]) -> dict[str, Any]:
         ),
         CONF_START_DELAY: start_delay,
         CONF_TARGET_CLIENT_ID: target_client_id,
+        CONF_TARGET_CLIENT_IDS_JSON: format_target_client_ids_json(target_client_ids),
+        CONF_TARGET_CLIENT_IDS: target_client_ids,
         CONF_CLIENT_ALIASES_JSON: format_aliases_json(aliases),
         CONF_CLIENT_ALIASES: aliases,
         CONF_VIEWS_JSON: format_views_json(views),
@@ -208,6 +259,7 @@ def build_storage_dict(config: dict[str, Any]) -> dict[str, Any]:
         CONF_ONLY_WHEN_VISIBLE: config[CONF_ONLY_WHEN_VISIBLE],
         CONF_START_DELAY: config[CONF_START_DELAY],
         CONF_TARGET_CLIENT_ID: config[CONF_TARGET_CLIENT_ID],
+        CONF_TARGET_CLIENT_IDS_JSON: config[CONF_TARGET_CLIENT_IDS_JSON],
         CONF_CLIENT_ALIASES_JSON: config[CONF_CLIENT_ALIASES_JSON],
         CONF_VIEWS_JSON: config[CONF_VIEWS_JSON],
     }

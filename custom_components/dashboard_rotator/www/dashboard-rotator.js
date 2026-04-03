@@ -11,8 +11,9 @@ const I18N = {
     dashboard: "Dashboard",
     thisBrowserClient: "This browser client",
     rotatorEnabled: "Rotator enabled",
-    setAsTarget: "Set as target",
-    alreadyTarget: "Already target",
+    addToTargets: "Add to targets",
+    alreadyTarget: "Already targeted",
+    clearTargets: "Clear targets",
     switchEntityNotResolved: "switch entity not resolved",
     targetClient: "Target client",
     allClients: "all clients",
@@ -60,8 +61,9 @@ const I18N = {
     dashboard: "儀表板",
     thisBrowserClient: "這個瀏覽器的 client",
     rotatorEnabled: "輪播啟用",
-    setAsTarget: "設成 target",
-    alreadyTarget: "已是 target",
+    addToTargets: "加入 target",
+    alreadyTarget: "已在 target 內",
+    clearTargets: "清除 target",
     switchEntityNotResolved: "無法解析對應的 switch entity",
     targetClient: "目標 client",
     allClients: "全部 client",
@@ -193,13 +195,17 @@ class DashboardRotatorController {
     return Math.max(1, Number(view?.seconds || profile?.default_interval || 15));
   }
 
-  getTargetClientId(profile) {
-    return String(profile?.target_client_id || "").trim();
+  getTargetClientIds(profile) {
+    if (Array.isArray(profile?.target_client_ids)) {
+      return profile.target_client_ids.map((value) => String(value || "").trim()).filter(Boolean);
+    }
+    const single = String(profile?.target_client_id || "").trim();
+    return single ? [single] : [];
   }
 
   isTargetClient(profile) {
-    const targetClientId = this.getTargetClientId(profile);
-    return !targetClientId || targetClientId === this._clientId;
+    const targetClientIds = this.getTargetClientIds(profile);
+    return !targetClientIds.length || targetClientIds.includes(this._clientId);
   }
 
   async navigateTo(path) {
@@ -235,8 +241,8 @@ class DashboardRotatorController {
   async handleCommand(command, profile, currentPath, views) {
     const seq = Number(command?.seq || 0);
     if (!seq || seq === this._lastCommandSeq) return false;
-    const profileTargetClientId = this.getTargetClientId(profile);
-    if (profileTargetClientId && profileTargetClientId !== this._clientId) return false;
+    const profileTargetClientIds = this.getTargetClientIds(profile);
+    if (profileTargetClientIds.length && !profileTargetClientIds.includes(this._clientId)) return false;
     const targetClientId = String(command?.target_client_id || "").trim();
     if (targetClientId && targetClientId !== this._clientId) return false;
     this._lastCommandSeq = seq;
@@ -516,8 +522,12 @@ class DashboardRotatorStatusCard extends HTMLElement {
           this._hass.callService(DOMAIN, "set_client_alias", { client_id: clientId, alias });
           return;
         }
-        if (action === "set_target_current" && el.dataset.clientId) {
-          this._hass.callService(DOMAIN, "set_target_client", { target_client_id: el.dataset.clientId });
+        if (action === "add_target_current" && el.dataset.clientId) {
+          this._hass.callService(DOMAIN, "set_target_client", { target_client_id: el.dataset.clientId, append: true });
+          return;
+        }
+        if (action === "clear_targets") {
+          this._hass.callService(DOMAIN, "set_target_client", {});
           return;
         }
         if (action === "jump" && el.dataset.path) {
@@ -572,7 +582,9 @@ class DashboardRotatorStatusCard extends HTMLElement {
     const clientStates = attrs.client_states || {};
     const activeClientId = attrs.active_client_id || null;
     const activeClientAlias = attrs.active_client_alias || null;
-    const targetClientId = attrs.target_client_id || profile.target_client_id || null;
+    const targetClientIds = Array.isArray(attrs.target_client_ids)
+      ? attrs.target_client_ids
+      : (Array.isArray(profile.target_client_ids) ? profile.target_client_ids : (attrs.target_client_id || profile.target_client_id ? [attrs.target_client_id || profile.target_client_id] : []));
     const currentBrowserClientId = window.dashboardRotatorController?._clientId || window.sessionStorage?.getItem?.("dashboard_rotator_client_id") || null;
     const enabledEntityId = this.getEnabledEntityId(runtime);
     const enabledState = enabledEntityId ? this._hass?.states?.[enabledEntityId]?.state : null;
@@ -606,7 +618,10 @@ class DashboardRotatorStatusCard extends HTMLElement {
           <div class="row"><strong>${this.t("status")}</strong><span>${this.formatStatus(runtime.state)}</span></div>
           <div class="row"><strong>${this.t("dashboard")}</strong><span>${profile.dashboard_path || "-"}</span></div>
           <div class="row"><strong>${this.t("thisBrowserClient")}</strong><span>${currentBrowserClientId || "-"}</span></div>
-          ${currentBrowserClientId ? `<div class="buttons" style="margin-top:6px;"><button data-action="set_target_current" data-client-id="${currentBrowserClientId}" ${currentBrowserClientId === targetClientId ? 'disabled' : ''}>${currentBrowserClientId === targetClientId ? this.t("alreadyTarget") : this.t("setAsTarget")}</button></div>` : ''}
+          ${(currentBrowserClientId || targetClientIds.length) ? `<div class="buttons" style="margin-top:6px;">
+            ${currentBrowserClientId ? `<button data-action="add_target_current" data-client-id="${currentBrowserClientId}" ${targetClientIds.includes(currentBrowserClientId) ? 'disabled' : ''}>${targetClientIds.includes(currentBrowserClientId) ? this.t("alreadyTarget") : this.t("addToTargets")}</button>` : ''}
+            ${targetClientIds.length ? `<button data-action="clear_targets">${this.t("clearTargets")}</button>` : ''}
+          </div>` : ''}
           <div class="switch-row">
             <div class="switch-meta">
               <span class="switch-title">${this.t("rotatorEnabled")}</span>
@@ -614,7 +629,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
             </div>
             <ha-switch data-action="toggle_enabled" data-entity-id="${enabledEntityId}" ${enabledKnown && enabledState === 'on' ? 'checked' : ''} ${enabledEntityId ? '' : 'disabled'}></ha-switch>
           </div>
-          <div class="row"><strong>${this.t("targetClient")}</strong><span>${targetClientId || this.t("allClients")}</span></div>
+          <div class="row"><strong>${this.t("targetClient")}</strong><span>${targetClientIds.length ? targetClientIds.join(", ") : this.t("allClients")}</span></div>
           ${this._config?.target_client_id ? `<div class="row"><strong>${this.t("cardCommandTarget")}</strong><span>${this._config.target_client_id}</span></div>` : ''}
           <div class="row"><strong>${this.t("activeClient")}</strong><span>${activeClientAlias ? `${activeClientAlias} (${activeClientId || '-'})` : (activeClientId || "-")}</span></div>
           <div class="row"><strong>${this.t("clients")}</strong><span>${clients.length}</span></div>
@@ -635,7 +650,7 @@ class DashboardRotatorStatusCard extends HTMLElement {
             ${clients.map((item) => `
               <div class="client-item ${item.client_id === activeClientId ? 'active' : ''}">
                 <div class="client-head">
-                  <span>${item.display_name || item.client_id || '-'}${item.client_id === targetClientId ? ' 🎯' : ''}${item.client_id === currentBrowserClientId ? ' 🖥️' : ''}</span>
+                  <span>${item.display_name || item.client_id || '-'}${targetClientIds.includes(item.client_id) ? ' 🎯' : ''}${item.client_id === currentBrowserClientId ? ' 🖥️' : ''}</span>
                   <span>${this.formatStatus(item.status)}</span>
                 </div>
                 <div class="tiny">${this.t("id")}: ${item.client_id || '-'}</div>

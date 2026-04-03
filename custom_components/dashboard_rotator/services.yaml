@@ -67,10 +67,15 @@ set_client_alias:
         text:
 set_target_client:
   name: Set target client
-  description: Set or clear the profile target client.
+  description: Set, append, or clear the profile target client list.
   fields:
     target_client_id:
       required: false
       example: dr-abc12345
       selector:
         text:
+    append:
+      required: false
+      example: true
+      selector:
+        boolean:

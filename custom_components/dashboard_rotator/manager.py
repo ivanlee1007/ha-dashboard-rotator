@@ -19,18 +19,21 @@ from .const import (
     ATTR_INTEGRATION_DOMAIN,
     ATTR_PROFILE,
     ATTR_TARGET_CLIENT_ID,
+    ATTR_TARGET_CLIENT_IDS,
     ATTR_VERSION,
     CLIENT_STALE_SECONDS,
     CONF_CLIENT_ALIASES,
     CONF_CLIENT_ALIASES_JSON,
     CONF_ENABLED,
     CONF_TARGET_CLIENT_ID,
+    CONF_TARGET_CLIENT_IDS,
+    CONF_TARGET_CLIENT_IDS_JSON,
     DOMAIN,
     SIGNAL_RUNTIME_UPDATE,
     VERSION,
 )
 from .helpers import get_entry_config, profile_for_frontend
-from .helpers import build_storage_dict, format_aliases_json
+from .helpers import build_storage_dict, format_aliases_json, format_target_client_ids_json
 
 
 class RotatorManager:
@@ -128,8 +131,13 @@ class RotatorManager:
     def _refresh_active_state(self, fallback_state: dict[str, Any] | None = None) -> None:
         """Refresh active client pointers after state/config changes."""
         self.active_client_id = self._select_active_client_id()
-        target_client_id = self.profile.get(CONF_TARGET_CLIENT_ID) or None
-        if target_client_id and target_client_id not in self.client_states:
+        target_client_ids = [
+            str(client_id or "").strip()
+            for client_id in self.profile.get(CONF_TARGET_CLIENT_IDS, [])
+            if str(client_id or "").strip()
+        ]
+        if target_client_ids and not any(client_id in self.client_states for client_id in target_client_ids):
+            target_client_id = target_client_ids[0]
             self.client_state = self.decorate_client_state({
                 "client_id": target_client_id,
                 "status": "target_unavailable",
@@ -188,13 +196,26 @@ class RotatorManager:
         self._refresh_active_state()
         self.async_write()
 
-    async def async_set_target_client(self, client_id: str | None) -> None:
+    async def async_set_target_client(self, client_id: str | None, append: bool = False) -> None:
         """Persist the target client selection."""
         value = (client_id or "").strip()
+        current = [
+            str(item or "").strip()
+            for item in self.profile.get(CONF_TARGET_CLIENT_IDS, [])
+            if str(item or "").strip()
+        ]
+        if not value:
+            target_client_ids: list[str] = []
+        elif append:
+            target_client_ids = current if value in current else [*current, value]
+        else:
+            target_client_ids = [value]
 
         self.profile = {
             **self.profile,
-            CONF_TARGET_CLIENT_ID: value,
+            CONF_TARGET_CLIENT_ID: target_client_ids[0] if len(target_client_ids) == 1 else "",
+            CONF_TARGET_CLIENT_IDS: target_client_ids,
+            CONF_TARGET_CLIENT_IDS_JSON: format_target_client_ids_json(target_client_ids),
         }
         self.hass.config_entries.async_update_entry(
             self.entry,
@@ -221,14 +242,6 @@ class RotatorManager:
 
     def _select_active_client_id(self) -> str | None:
         """Choose the client that best represents the active runtime."""
-        if not self.client_states:
-            target_client_id = self.profile.get(CONF_TARGET_CLIENT_ID) or None
-            return target_client_id
-
-        target_client_id = self.profile.get(CONF_TARGET_CLIENT_ID) or None
-        if target_client_id:
-            return target_client_id
-
         status_weight = {
             "running": 60,
             "navigating": 55,
@@ -242,8 +255,25 @@ class RotatorManager:
             "disabled": 0,
         }
 
+        target_client_ids = [
+            str(client_id or "").strip()
+            for client_id in self.profile.get(CONF_TARGET_CLIENT_IDS, [])
+            if str(client_id or "").strip()
+        ]
+
+        if not self.client_states:
+            return target_client_ids[0] if target_client_ids else None
+
+        candidates = list(self.client_states.items())
+        if target_client_ids:
+            targeted = [item for item in candidates if item[0] in target_client_ids]
+            if targeted:
+                candidates = targeted
+            else:
+                return target_client_ids[0]
+
         ranked = sorted(
-            self.client_states.items(),
+            candidates,
             key=lambda item: (
                 status_weight.get(str(item[1].get("status") or "idle"), 5)
                 + (20 if item[1].get("on_managed_dashboard") else 0)
@@ -260,8 +290,12 @@ class RotatorManager:
         """Expose a coarse runtime state for the main sensor."""
         if not self.profile[CONF_ENABLED]:
             return "disabled"
-        target_client_id = self.profile.get(CONF_TARGET_CLIENT_ID) or None
-        if target_client_id and target_client_id not in self.client_states:
+        target_client_ids = [
+            str(client_id or "").strip()
+            for client_id in self.profile.get(CONF_TARGET_CLIENT_IDS, [])
+            if str(client_id or "").strip()
+        ]
+        if target_client_ids and not any(client_id in self.client_states for client_id in target_client_ids):
             return "target_unavailable"
         if not self.client_states:
             return "idle"
@@ -282,6 +316,7 @@ class RotatorManager:
             ATTR_ACTIVE_CLIENT_ALIAS: self.get_client_alias(self.active_client_id),
             ATTR_ACTIVE_CLIENT_COUNT: len(self.client_states),
             ATTR_TARGET_CLIENT_ID: self.profile.get(CONF_TARGET_CLIENT_ID) or None,
+            ATTR_TARGET_CLIENT_IDS: list(self.profile.get(CONF_TARGET_CLIENT_IDS, [])),
             ATTR_CLIENT_STATE: deepcopy(self.client_state),
             ATTR_CLIENT_STATES: {
                 client_id: self.decorate_client_state(state)

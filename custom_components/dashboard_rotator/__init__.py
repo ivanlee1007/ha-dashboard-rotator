@@ -63,6 +63,7 @@ SERVICE_SET_CLIENT_ALIAS_SCHEMA = vol.Schema(
 SERVICE_SET_TARGET_CLIENT_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_TARGET_CLIENT_ID): cv.string,
+        vol.Optional("append"): bool,
     }
 )
 
@@ -134,7 +135,10 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     async def _handle_set_target_client(call: ServiceCall) -> None:
         manager = _get_manager(hass)
         if manager:
-            await manager.async_set_target_client(call.data.get(CONF_TARGET_CLIENT_ID))
+            await manager.async_set_target_client(
+                call.data.get(CONF_TARGET_CLIENT_ID),
+                append=bool(call.data.get("append", False)),
+            )
 
     if not hass.services.has_service(DOMAIN, SERVICE_PAUSE):
         hass.services.async_register(DOMAIN, SERVICE_PAUSE, _handle_pause, schema=SERVICE_BASE_SCHEMA)

@@ -34,6 +34,8 @@ from .const import (
     CONF_PAUSE_ON_INTERACTION,
     CONF_START_DELAY,
     CONF_TARGET_CLIENT_ID,
+    CONF_TARGET_CLIENT_IDS,
+    CONF_TARGET_CLIENT_IDS_JSON,
     CONF_VIEWS,
     CONF_VIEWS_JSON,
     DEFAULT_CLIENT_ALIASES_JSON,
@@ -51,6 +53,7 @@ from .const import (
 )
 from .helpers import (
     format_views_json,
+    format_target_client_ids_json,
     InvalidAliasesConfig,
     InvalidViewsConfig,
     build_storage_dict,
@@ -149,10 +152,11 @@ def _client_option_label(
 def _clients_summary(
     aliases: dict[str, str],
     states: dict[str, dict[str, Any]] | None = None,
-    target_client_id: str | None = None,
+    target_client_ids: list[str] | None = None,
 ) -> str:
     states = states or {}
-    known_client_ids = sorted(set(states) | set(aliases) | ({target_client_id} if target_client_id else set()))
+    target_set = {str(client_id or "").strip() for client_id in (target_client_ids or []) if str(client_id or "").strip()}
+    known_client_ids = sorted(set(states) | set(aliases) | target_set)
     if not known_client_ids:
         return "- (none)"
 
@@ -163,7 +167,7 @@ def _clients_summary(
         status = state.get("status") or "offline"
         presence = _presence_label(state)
         last_seen = _format_age_label(_age_seconds(state))
-        marker = " 🎯" if client_id == target_client_id and target_client_id else ""
+        marker = " 🎯" if client_id in target_set else ""
         label = alias or state.get("page_title") or client_id
         lines.append(f"- {label} | {client_id} | {status} | {presence} | {last_seen}{marker}")
     return "\n".join(lines)
@@ -182,9 +186,10 @@ def _client_details_placeholders(
     client_id: str,
     alias: str | None,
     state: dict[str, Any] | None,
-    target_client_id: str | None,
+    target_client_ids: list[str] | None,
 ) -> dict[str, str]:
     state = state or {}
+    target_set = {str(item or "").strip() for item in (target_client_ids or []) if str(item or "").strip()}
     return {
         "client_label": _client_option_label(client_id, alias, state),
         "status": _stringify(state.get("status"), "offline"),
@@ -196,7 +201,7 @@ def _client_details_placeholders(
         "page_visible": _stringify(state.get("page_visible")),
         "on_managed_dashboard": _stringify(state.get("on_managed_dashboard")),
         "updated_at": _stringify(state.get("updated_at"), "never"),
-        "is_target": "yes" if client_id == (target_client_id or None) else "no",
+        "is_target": "yes" if client_id in target_set else "no",
     }
 
 
@@ -432,6 +437,15 @@ def _build_view_edit_schema(defaults: dict[str, Any], max_position: int) -> vol.
     )
 
 
+def _build_target_payload(target_client_ids: list[str]) -> dict[str, Any]:
+    clean = [str(client_id or "").strip() for client_id in target_client_ids if str(client_id or "").strip()]
+    return {
+        CONF_TARGET_CLIENT_ID: clean[0] if len(clean) == 1 else "",
+        CONF_TARGET_CLIENT_IDS_JSON: format_target_client_ids_json(clean),
+        CONF_TARGET_CLIENT_IDS: clean,
+    }
+
+
 def _remap_views_for_dashboard_path(
     views: list[dict[str, Any]],
     old_dashboard_path: str,
@@ -512,7 +526,7 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 "name": NAME,
                 "views_summary": _views_summary(config[CONF_VIEWS]),
-                "target_client": config.get(CONF_TARGET_CLIENT_ID) or "all clients",
+                "target_client": ", ".join(config.get(CONF_TARGET_CLIENT_IDS, [])) or "all clients",
             },
         )
 
@@ -524,6 +538,12 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
             new_dashboard_path = normalize_path(
                 str(user_input.get(CONF_DASHBOARD_PATH, config.get(CONF_DASHBOARD_PATH, DEFAULT_DASHBOARD_PATH)))
             ) or DEFAULT_DASHBOARD_PATH
+            raw_target_client_id = str(user_input.get(CONF_TARGET_CLIENT_ID, "") or "").strip()
+            target_payload = _build_target_payload(
+                [raw_target_client_id]
+                if raw_target_client_id
+                else (config.get(CONF_TARGET_CLIENT_IDS, []) if len(config.get(CONF_TARGET_CLIENT_IDS, [])) > 1 else [])
+            )
             remapped_views = _remap_views_for_dashboard_path(
                 config[CONF_VIEWS],
                 config.get(CONF_DASHBOARD_PATH, DEFAULT_DASHBOARD_PATH),
@@ -532,7 +552,7 @@ class DashboardRotatorConfigFlow(ConfigFlow, domain=DOMAIN):
             user_input = {
                 **user_input,
                 CONF_DASHBOARD_PATH: new_dashboard_path,
-                CONF_TARGET_CLIENT_ID: str(user_input.get(CONF_TARGET_CLIENT_ID, "") or "").strip(),
+                **target_payload,
                 CONF_VIEWS_JSON: format_views_json(remapped_views),
             }
             try:
@@ -787,7 +807,7 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
             menu_options=["general", "views", "clients", "advanced", "save"],
             description_placeholders={
                 "views_summary": _views_summary(config[CONF_VIEWS]),
-                "target_client": config.get(CONF_TARGET_CLIENT_ID) or "all clients",
+                "target_client": ", ".join(config.get(CONF_TARGET_CLIENT_IDS, [])) or "all clients",
             },
         )
 
@@ -800,13 +820,13 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
                 "clients_summary": _clients_summary(
                     config.get(CONF_CLIENT_ALIASES, {}),
                     self._get_runtime_states(),
-                    config.get(CONF_TARGET_CLIENT_ID) or None,
+                    config.get(CONF_TARGET_CLIENT_IDS, []),
                 ),
             },
         )
 
     async def async_step_clear_target_client(self, user_input: dict[str, Any] | None = None):
-        self._set_working(self._build_candidate({CONF_TARGET_CLIENT_ID: ""}))
+        self._set_working(self._build_candidate(_build_target_payload([])))
         return await self.async_step_clients()
 
     async def async_step_view_client_details_select(self, user_input: dict[str, Any] | None = None):
@@ -837,7 +857,7 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
                 client_id,
                 aliases.get(client_id),
                 state,
-                config.get(CONF_TARGET_CLIENT_ID) or None,
+                config.get(CONF_TARGET_CLIENT_IDS, []),
             ),
         )
 
@@ -845,7 +865,7 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
         client_id = self._selected_client_id
         if not client_id:
             return await self.async_step_clients()
-        self._set_working(self._build_candidate({CONF_TARGET_CLIENT_ID: client_id}))
+        self._set_working(self._build_candidate(_build_target_payload([client_id])))
         return await self.async_step_view_client_details()
 
     async def async_step_clear_selected_client_alias(self, user_input: dict[str, Any] | None = None):
@@ -864,7 +884,8 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
         options = self._build_client_options(include_all=True)
         if user_input is not None:
             try:
-                self._set_working(self._build_candidate({CONF_TARGET_CLIENT_ID: user_input[CONF_TARGET_CLIENT_ID]}))
+                client_id = str(user_input.get(CONF_TARGET_CLIENT_ID, "") or "").strip()
+                self._set_working(self._build_candidate(_build_target_payload([client_id] if client_id else [])))
             except (InvalidViewsConfig, InvalidAliasesConfig):
                 return self.async_show_form(
                     step_id="edit_target_client",
@@ -936,6 +957,12 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
             new_dashboard_path = normalize_path(
                 str(user_input.get(CONF_DASHBOARD_PATH, config.get(CONF_DASHBOARD_PATH, DEFAULT_DASHBOARD_PATH)))
             ) or DEFAULT_DASHBOARD_PATH
+            raw_target_client_id = str(user_input.get(CONF_TARGET_CLIENT_ID, "") or "").strip()
+            target_payload = _build_target_payload(
+                [raw_target_client_id]
+                if raw_target_client_id
+                else (config.get(CONF_TARGET_CLIENT_IDS, []) if len(config.get(CONF_TARGET_CLIENT_IDS, [])) > 1 else [])
+            )
             remapped_views = _remap_views_for_dashboard_path(
                 config[CONF_VIEWS],
                 config.get(CONF_DASHBOARD_PATH, DEFAULT_DASHBOARD_PATH),
@@ -944,7 +971,7 @@ class DashboardRotatorOptionsFlow(OptionsFlowWithReload):
             user_input = {
                 **user_input,
                 CONF_DASHBOARD_PATH: new_dashboard_path,
-                CONF_TARGET_CLIENT_ID: str(user_input.get(CONF_TARGET_CLIENT_ID, "") or "").strip(),
+                **target_payload,
                 CONF_VIEWS_JSON: format_views_json(remapped_views),
             }
             try:
